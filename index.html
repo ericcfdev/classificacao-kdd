@@ -1,1320 +1,546 @@
 <!DOCTYPE html>
 <html lang="pt-BR" class="dark">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Classificação | Fluxo Dinâmico KDD</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                        mono: ['JetBrains Mono', 'monospace'],
-                    },
-                    colors: {
-                        brandTeal: {
-                            200: '#99f6e4',
-                            300: '#5eead4',
-                            400: '#2dd4bf',
-                            500: '#14b8a6',
-                            600: '#1b7a68',
-                            900: '#134e4a',
-                            950: '#042f2e',
-                        },
-                        brandPurple: {
-                            200: '#e9d5ff',
-                            300: '#d8b4fe',
-                            400: '#c084fc',
-                            500: '#a67db8',
-                            600: '#9333ea',
-                            900: '#581c87',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #060911;
-            color: #f8fafc;
-            overflow-x: hidden;
-        }
-
-        /* Fundo com grade sutil tecnológica */
-        .bg-grid-pattern {
-            background-image: 
-                radial-gradient(circle at 15% 20%, rgba(27, 122, 104, 0.14) 0%, transparent 35%),
-                radial-gradient(circle at 85% 80%, rgba(166, 125, 184, 0.14) 0%, transparent 35%),
-                linear-gradient(to right, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
-                linear-gradient(to bottom, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
-            background-size: 100% 100%, 100% 100%, 36px 36px, 36px 36px;
-        }
-
-        /* Animação de laser de varredura no Pré-processamento */
-        @keyframes scanLine {
-            0% { top: 0%; opacity: 0; }
-            15% { opacity: 1; }
-            85% { opacity: 1; }
-            100% { top: 100%; opacity: 0; }
-        }
-        .scanner-beam {
-            position: absolute;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, transparent, #2dd4bf, #a67db8, #2dd4bf, transparent);
-            box-shadow: 0 0 18px 2px rgba(45, 212, 191, 0.7);
-            animation: scanLine 2.4s ease-in-out infinite;
-            pointer-events: none;
-            z-index: 20;
-        }
-
-        /* Fluxo de dados animado nos conectores SVG */
-        @keyframes dashFlow {
-            to { stroke-dashoffset: -40; }
-        }
-        .svg-flow-line {
-            stroke-dasharray: 6 6;
-            animation: dashFlow 1.2s linear infinite;
-        }
-
-        /* Pulso suave para nós ativos */
-        @keyframes pulseRing {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(45, 212, 191, 0.6); }
-            70% { transform: scale(1); box-shadow: 0 0 0 12px rgba(45, 212, 191, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(45, 212, 191, 0); }
-        }
-        .active-node-pulse {
-            animation: pulseRing 2s infinite;
-        }
-
-        /* Entrada suave dos elementos do palco */
-        @keyframes stageFadeIn {
-            from { opacity: 0; transform: translateY(10px) scale(0.99); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        .stage-animate {
-            animation: stageFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-
-        /* Partículas flutuantes no pipeline */
-        @keyframes travelRight {
-            0% { left: 0%; opacity: 0; }
-            20% { opacity: 1; }
-            80% { opacity: 1; }
-            100% { left: 100%; opacity: 0; }
-        }
-        .pipeline-particle {
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 8px;
-            height: 8px;
-            border-radius: 9999px;
-            background: #5eead4;
-            box-shadow: 0 0 12px #2dd4bf;
-            animation: travelRight 1.4s linear infinite;
-        }
-
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #090d16; }
-        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Classificação | Fluxo Dinâmico KDD</title>
+<meta name="description" content="Seminário de Tarefas de Data Mining: Classificação no processo KDD. Engenharia Inteligente de Dados, ULBRA.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23042f2e'/%3E%3Ccircle cx='20' cy='22' r='7' fill='%232dd4bf'/%3E%3Ccircle cx='44' cy='42' r='7' fill='%23a67db8'/%3E%3Cpath d='M10 54L54 10' stroke='%23fbbf24' stroke-width='4' stroke-dasharray='6 5' stroke-linecap='round'/%3E%3C/svg%3E">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script>
+tailwind.config={darkMode:'class',theme:{extend:{fontFamily:{sans:['Inter','sans-serif'],mono:['JetBrains Mono','monospace']},colors:{
+brandTeal:{200:'#99f6e4',300:'#5eead4',400:'#2dd4bf',500:'#14b8a6',600:'#1b7a68',900:'#134e4a',950:'#042f2e'},
+brandPurple:{200:'#e9d5ff',300:'#d8b4fe',400:'#c084fc',500:'#a67db8',600:'#9333ea',900:'#581c87'}}}}}
+</script>
+<style>
+body{font-family:'Inter',sans-serif;background:#060911;color:#f8fafc;overflow-x:hidden}
+.bg-grid{background-image:radial-gradient(circle at 15% 20%,rgba(27,122,104,.16),transparent 35%),radial-gradient(circle at 85% 80%,rgba(166,125,184,.16),transparent 35%),linear-gradient(to right,rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(to bottom,rgba(255,255,255,.025) 1px,transparent 1px);background-size:100% 100%,100% 100%,36px 36px,36px 36px;background-attachment:fixed}
+@keyframes scan{0%{top:0;opacity:0}15%,85%{opacity:1}100%{top:100%;opacity:0}}
+.scanner{position:absolute;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,#2dd4bf,#a67db8,#2dd4bf,transparent);box-shadow:0 0 18px 2px rgba(45,212,191,.7);animation:scan 2.4s ease-in-out infinite;pointer-events:none;z-index:20}
+@keyframes dash{to{stroke-dashoffset:-40}}
+.flow{stroke-dasharray:6 6;animation:dash 1.2s linear infinite}
+@keyframes ring{0%{box-shadow:0 0 0 0 rgba(45,212,191,.55)}70%{box-shadow:0 0 0 12px rgba(45,212,191,0)}100%{box-shadow:0 0 0 0 rgba(45,212,191,0)}}
+.pulse-node{animation:ring 2s infinite}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.enter{animation:fadeUp .4s cubic-bezier(.16,1,.3,1) both}
+.stagger>*{animation:fadeUp .45s cubic-bezier(.16,1,.3,1) both}
+.stagger>*:nth-child(2){animation-delay:.06s}.stagger>*:nth-child(3){animation-delay:.12s}.stagger>*:nth-child(4){animation-delay:.18s}.stagger>*:nth-child(5){animation-delay:.24s}.stagger>*:nth-child(6){animation-delay:.3s}
+@keyframes travel{0%{left:0;opacity:0}20%,80%{opacity:1}100%{left:100%;opacity:0}}
+.particle{position:absolute;top:50%;transform:translateY(-50%);width:8px;height:8px;border-radius:9999px;background:#5eead4;box-shadow:0 0 12px #2dd4bf;animation:travel 1.4s linear infinite}
+@keyframes bar{from{width:0}to{width:100%}}
+.progress{height:3px;background:linear-gradient(90deg,#2dd4bf,#a67db8);animation:bar 3s linear forwards}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+.float{animation:float 3s ease-in-out infinite}
+.lift{transition:transform .25s,border-color .25s,box-shadow .25s}
+.lift:hover{transform:translateY(-3px);border-color:rgba(45,212,191,.5);box-shadow:0 10px 30px -12px rgba(45,212,191,.35)}
+.donut{transition:stroke-dasharray 1.2s cubic-bezier(.16,1,.3,1)}
+.vbar{transition:height 1s cubic-bezier(.16,1,.3,1)}
+#sim-target-circle,#sim-pulse-circle{transition:cx .5s cubic-bezier(.16,1,.3,1),cy .5s cubic-bezier(.16,1,.3,1),fill .3s}
+#sim-target-label{transition:x .5s,y .5s}
+.decision{transition:all .35s}
+button:focus-visible,input:focus-visible{outline:2px solid #2dd4bf;outline-offset:2px}
+::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-track{background:#090d16}::-webkit-scrollbar-thumb{background:#1e293b;border-radius:3px}
+@keyframes blink{50%{opacity:0}}
+.caret{animation:blink 1s steps(1) infinite;color:#2dd4bf}
+@keyframes nudge{0%,100%{transform:translateX(0)}50%{transform:translateX(5px)}}
+.nudge{animation:nudge 1.2s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+</style>
 </head>
-<body class="min-h-screen flex flex-col bg-grid-pattern selection:bg-brandTeal-500 selection:text-slate-950">
-
-    <header class="border-b border-slate-800 bg-slate-950 px-4 lg:px-8">
-        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-x-6">
-            <div class="py-3">
-                <h1 class="text-base font-semibold text-white">Classificação</h1>
-                <p class="text-xs text-slate-400">Éric, João Pedro, Pedro Leony, Yasmin</p>
-            </div>
-            <nav class="flex max-w-full overflow-x-auto">
-                <button onclick="switchView('kdd')" id="nav-kdd" class="nav-tab px-4 py-3 text-sm border-b-2 border-teal-400 text-white flex items-center gap-2 whitespace-nowrap"><i class="fa-solid fa-diagram-project"></i><span>1. Fluxo KDD</span></button>
-                <button onclick="switchView('sim')" id="nav-sim" class="nav-tab px-4 py-3 text-sm border-b-2 border-transparent text-slate-400 hover:text-white flex items-center gap-2 whitespace-nowrap"><i class="fa-solid fa-sliders"></i><span>2. Do dado à decisão</span></button>
-                <button onclick="switchView('cases')" id="nav-cases" class="nav-tab px-4 py-3 text-sm border-b-2 border-transparent text-slate-400 hover:text-white flex items-center gap-2 whitespace-nowrap"><i class="fa-solid fa-chart-pie"></i><span>3. Casos reais</span></button>
-                <button onclick="switchView('concepts')" id="nav-concepts" class="nav-tab px-4 py-3 text-sm border-b-2 border-transparent text-slate-400 hover:text-white flex items-center gap-2 whitespace-nowrap"><i class="fa-solid fa-bolt"></i><span>4. Visão geral</span></button>
-            </nav>
-            <button onclick="toggleFullScreen()" class="hidden xl:flex items-center gap-2 text-xs text-slate-400 hover:text-white transition">
-                <i class="fa-solid fa-expand"></i><span>Tela cheia</span>
-            </button>
-        </div>
-    </header>
-
-    <!-- CONTEÚDO PRINCIPAL -->
-    <main class="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-5 flex flex-col justify-between">
-
-        <!-- MÓDULO 1: FLUXO DINÂMICO KDD (ANIMAÇÃO INTERATIVA) -->
-        <section id="view-kdd" class="space-y-5">
-            
-            <!-- Barra de Controle Superior: Seletor de Caso + Player Automático -->
-            <div class="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 bg-slate-900/70 backdrop-blur-md border border-slate-800/90 rounded-2xl p-3.5">
-                
-                <div class="text-sm text-slate-300 flex items-center gap-2 px-2"><i class="fa-solid fa-building-columns text-brandTeal-400"></i><span>Exemplo: classificação de crédito (German Credit)</span></div>
-
-                <!-- Controles de Reprodução -->
-                <div class="flex items-center gap-2 justify-end">
-                    <button onclick="changeStep(-1)" class="w-9 h-9 rounded-xl bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800 flex items-center justify-center transition" title="Etapa anterior">
-                        <i class="fa-solid fa-chevron-left text-xs"></i>
-                    </button>
-                    <button onclick="toggleAutoPlay()" id="autoplay-btn" class="px-4 py-2 rounded-xl bg-gradient-to-r from-brandTeal-600 to-brandTeal-500 hover:from-brandTeal-500 hover:to-brandTeal-400 text-white text-xs font-bold shadow-lg shadow-brandTeal-900/50 flex items-center gap-2 transition">
-                        <i class="fa-solid fa-play" id="autoplay-icon"></i>
-                        <span id="autoplay-text">Fluxo automático</span>
-                    </button>
-                    <button onclick="changeStep(1)" class="w-9 h-9 rounded-xl bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800 flex items-center justify-center transition" title="Próxima etapa">
-                        <i class="fa-solid fa-chevron-right text-xs"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Pipeline KDD Horizontal Animada (5 Etapas) -->
-            <div class="bg-slate-900/60 backdrop-blur-md border border-slate-800/90 rounded-2xl p-4 sm:p-5">
-                <div class="grid grid-cols-1 md:grid-cols-5 gap-3 relative" id="kdd-nodes-container">
-                    <!-- Injetado dinamicamente via JS -->
-                </div>
-            </div>
-
-            <!-- Palco Visual Principal da Etapa Atual -->
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
-                
-                <!-- Card Esquerdo (3 Colunas): Resumo Ultra-Visual da Etapa -->
-                <div class="lg:col-span-4 bg-slate-900/75 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between relative overflow-hidden">
-                    <div class="space-y-4">
-                        <!-- Badge da Etapa -->
-                        <div class="flex items-center justify-between">
-                            <span id="stage-badge" class="px-2.5 py-1 rounded-md text-[11px] font-mono font-bold uppercase bg-brandTeal-500/15 text-brandTeal-300 border border-brandTeal-500/30">
-                                ETAPA 01 / 05
-                            </span>
-                            <span id="stage-metric-pill" class="text-xs font-mono text-brandPurple-300 font-semibold">
-                                1.000 clientes
-                            </span>
-                        </div>
-
-                        <!-- Título e Subtítulo Curto -->
-                        <div>
-                            <h2 id="stage-main-title" class="text-2xl font-black text-white tracking-tight">
-                                Seleção
-                            </h2>
-                            <p id="stage-short-subtitle" class="text-sm text-slate-300 mt-1 font-medium">
-                                1.000 clientes e 20 atributos (valor, prazo, histórico...)
-                            </p>
-                        </div>
-
-                        <!-- Fluxo Entrada → Transformação → Saída (Visual) -->
-                        <div class="space-y-2.5 pt-2">
-                            <div class="p-3 rounded-xl bg-slate-950/90 border border-slate-800/80 flex items-center gap-3">
-                                <div class="w-8 h-8 rounded-lg bg-slate-900 border border-slate-700 flex items-center justify-center text-slate-400 flex-shrink-0">
-                                    <i class="fa-solid fa-arrow-right-to-bracket text-xs"></i>
-                                </div>
-                                <div>
-                                    <div class="text-[10px] font-mono uppercase text-slate-500">Entrada</div>
-                                    <div id="stage-in-text" class="text-xs font-bold text-slate-200">Base Bruta UCI</div>
-                                </div>
-                            </div>
-
-                            <div class="p-3 rounded-xl bg-slate-950/90 border border-brandTeal-500/30 flex items-center gap-3">
-                                <div class="w-8 h-8 rounded-lg bg-brandTeal-500/20 border border-brandTeal-500/40 flex items-center justify-center text-brandTeal-300 flex-shrink-0">
-                                    <i class="fa-solid fa-gears text-xs"></i>
-                                </div>
-                                <div>
-                                    <div class="text-[10px] font-mono uppercase text-brandTeal-400">Ação no KDD</div>
-                                    <div id="stage-act-text" class="text-xs font-bold text-white">Filtro de Atributos Relevantes</div>
-                                </div>
-                            </div>
-
-                            <div class="p-3 rounded-xl bg-slate-950/90 border border-brandPurple-500/30 flex items-center gap-3">
-                                <div class="w-8 h-8 rounded-lg bg-brandPurple-500/20 border border-brandPurple-500/40 flex items-center justify-center text-brandPurple-300 flex-shrink-0">
-                                    <i class="fa-solid fa-check-double text-xs"></i>
-                                </div>
-                                <div>
-                                    <div class="text-[10px] font-mono uppercase text-brandPurple-300">Resultado</div>
-                                    <div id="stage-out-text" class="text-xs font-bold text-brandPurple-200">Dados Escolhidos</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Botão de Interação Direta na Etapa -->
-                    <div id="stage-action-slot" class="pt-5 mt-4 border-t border-slate-800/80">
-                        <!-- Injetado via JS -->
-                    </div>
-                </div>
-
-                <!-- Card Direito (8 Colunas): Canvas Gráfico Animado -->
-                <div class="lg:col-span-8 bg-slate-900/75 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between relative overflow-hidden min-h-[430px]">
-                    <div id="kdd-visual-stage" class="flex-1 flex flex-col justify-center">
-                        <!-- Renderizado dinamicamente com animações SVG e Tabelas Dinâmicas -->
-                    </div>
-                </div>
-
-            </div>
-        </section>
-
-        <!-- MÓDULO 2: SIMULADOR "DO DADO À DECISÃO" -->
-        <section id="view-sim" class="hidden space-y-5 stage-animate">
-            
-            <!-- Cabeçalho + Botões Rápidos dos Clientes da Tabela (Ana, Bruno, Carla, Diego, Elisa) -->
-            <div class="bg-slate-900/75 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                <div>
-                    <h2 class="text-xl font-black text-white">Do dado à decisão</h2>
-                </div>
-
-                <!-- Atalhos dos clientes -->
-                <div class="flex flex-wrap items-center gap-2">
-                    <span class="text-xs text-slate-400 mr-1">Testar Cliente:</span>
-                    <button onclick="selectClientPreset('ana')" id="preset-ana" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-brandTeal-600/20 border border-brandTeal-500/50 text-brandTeal-300 hover:bg-brandTeal-600/30 transition">
-                        Ana (R$ 6.500 | 0 atr)
-                    </button>
-                    <button onclick="selectClientPreset('bruno')" id="preset-bruno" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-brandPurple-500/20 border border-brandPurple-500/50 text-brandPurple-300 hover:bg-brandPurple-500/30 transition">
-                        Bruno (R$ 1.800 | 4 atr)
-                    </button>
-                    <button onclick="selectClientPreset('carla')" id="preset-carla" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-brandTeal-600/20 border border-brandTeal-500/50 text-brandTeal-300 hover:bg-brandTeal-600/30 transition">
-                        Carla (R$ 4.200 | 1 atr)
-                    </button>
-                    <button onclick="selectClientPreset('diego')" id="preset-diego" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-brandPurple-500/20 border border-brandPurple-500/50 text-brandPurple-300 hover:bg-brandPurple-500/30 transition">
-                        Diego (R$ 2.100 | 3 atr)
-                    </button>
-                    <button onclick="selectClientPreset('elisa')" id="preset-elisa" class="px-3.5 py-1.5 rounded-xl text-xs font-extrabold bg-amber-500/20 border-2 border-amber-400 text-amber-300 shadow-lg shadow-amber-950/50 transition">
-                        <i class="fa-solid fa-circle-question mr-1"></i>Elisa (R$ 3.000 | 2 atr → ?)
-                    </button>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
-                
-                <!-- Coluna Esquerda: Tabela com Gabarito + Controles Deslizantes -->
-                <div class="lg:col-span-5 space-y-4">
-                    
-                    <!-- Base de treino -->
-                    <div class="bg-slate-900/75 border border-slate-800 rounded-2xl p-4">
-                        <div class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center justify-between">
-                            <span>Base de Treino (Gabarito)</span>
-                        </div>
-                        <table class="w-full text-left border-collapse text-xs">
-                            <thead>
-                                <tr class="border-b border-slate-800 text-slate-400">
-                                    <th class="py-2 px-2.5">Cliente</th>
-                                    <th class="py-2 px-2.5">Renda</th>
-                                    <th class="py-2 px-2.5">Atrasos</th>
-                                    <th class="py-2 px-2.5">Classe</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-800/60 font-mono">
-                                <tr onclick="selectClientPreset('ana')" class="hover:bg-slate-800/50 cursor-pointer transition">
-                                    <td class="py-2 px-2.5 font-sans font-bold text-white">Ana</td>
-                                    <td class="py-2 px-2.5 text-slate-300">R$ 6.500</td>
-                                    <td class="py-2 px-2.5 text-brandTeal-300">0</td>
-                                    <td class="py-2 px-2.5"><span class="px-2 py-0.5 rounded bg-brandTeal-600/30 text-brandTeal-300 font-sans font-bold">Bom pagador</span></td>
-                                </tr>
-                                <tr onclick="selectClientPreset('bruno')" class="hover:bg-slate-800/50 cursor-pointer transition">
-                                    <td class="py-2 px-2.5 font-sans font-bold text-white">Bruno</td>
-                                    <td class="py-2 px-2.5 text-slate-300">R$ 1.800</td>
-                                    <td class="py-2 px-2.5 text-brandPurple-300">4</td>
-                                    <td class="py-2 px-2.5"><span class="px-2 py-0.5 rounded bg-brandPurple-500/30 text-brandPurple-300 font-sans font-bold">Mau pagador</span></td>
-                                </tr>
-                                <tr onclick="selectClientPreset('carla')" class="hover:bg-slate-800/50 cursor-pointer transition">
-                                    <td class="py-2 px-2.5 font-sans font-bold text-white">Carla</td>
-                                    <td class="py-2 px-2.5 text-slate-300">R$ 4.200</td>
-                                    <td class="py-2 px-2.5 text-brandTeal-300">1</td>
-                                    <td class="py-2 px-2.5"><span class="px-2 py-0.5 rounded bg-brandTeal-600/30 text-brandTeal-300 font-sans font-bold">Bom pagador</span></td>
-                                </tr>
-                                <tr onclick="selectClientPreset('diego')" class="hover:bg-slate-800/50 cursor-pointer transition">
-                                    <td class="py-2 px-2.5 font-sans font-bold text-white">Diego</td>
-                                    <td class="py-2 px-2.5 text-slate-300">R$ 2.100</td>
-                                    <td class="py-2 px-2.5 text-brandPurple-300">3</td>
-                                    <td class="py-2 px-2.5"><span class="px-2 py-0.5 rounded bg-brandPurple-500/30 text-brandPurple-300 font-sans font-bold">Mau pagador</span></td>
-                                </tr>
-                                <tr onclick="selectClientPreset('elisa')" class="bg-amber-500/10 hover:bg-amber-500/20 cursor-pointer transition">
-                                    <td class="py-2 px-2.5 font-sans font-extrabold text-amber-300">Elisa</td>
-                                    <td class="py-2 px-2.5 text-amber-200">R$ 3.000</td>
-                                    <td class="py-2 px-2.5 text-amber-200">2</td>
-                                    <td class="py-2 px-2.5"><span id="elisa-table-tag" class="px-2 py-0.5 rounded bg-amber-500/30 text-amber-300 font-sans font-extrabold">?</span></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <!-- Sliders para Manipulação ao Vivo -->
-                    <div class="bg-slate-900/75 border border-slate-800 rounded-2xl p-4 space-y-4">
-                        <div class="text-xs font-bold uppercase tracking-wider text-slate-400">
-                            Ajustar Atributos Manualmente
-                        </div>
-
-                        <div>
-                            <div class="flex justify-between text-xs mb-1">
-                                <span class="text-slate-300 font-semibold">Renda Mensal</span>
-                                <span id="lbl-sim-renda" class="font-mono font-bold text-brandTeal-400">R$ 3.000</span>
-                            </div>
-                            <input type="range" id="input-sim-renda" min="1000" max="8000" step="100" value="3000" oninput="runLiveClassifier('Personalizado')" class="w-full accent-teal-400 cursor-pointer">
-                        </div>
-
-                        <div>
-                            <div class="flex justify-between text-xs mb-1">
-                                <span class="text-slate-300 font-semibold">Histórico de Atrasos</span>
-                                <span id="lbl-sim-atrasos" class="font-mono font-bold text-brandPurple-400">2 atrasos</span>
-                            </div>
-                            <input type="range" id="input-sim-atrasos" min="0" max="5" step="1" value="2" oninput="runLiveClassifier('Personalizado')" class="w-full accent-purple-400 cursor-pointer">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Coluna Direita: Gráfico de Fronteira + Decisão (Aprovar | Analisar | Negar) -->
-                <div class="lg:col-span-7 bg-slate-900/75 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between space-y-4">
-                    
-                    <!-- 3 Cartões de Decisão -->
-                    <div class="grid grid-cols-3 gap-3">
-                        <div id="decision-box-approve" class="p-3.5 rounded-xl border border-slate-800 bg-slate-950/60 transition-all text-center">
-                            <i class="fa-solid fa-circle-check text-xl text-brandTeal-400 mb-1"></i>
-                            <div class="text-sm font-black text-white uppercase">Aprovar</div>
-                            <div class="text-[11px] text-slate-400">Perfil Bom Pagador</div>
-                        </div>
-
-                        <div id="decision-box-analyze" class="p-3.5 rounded-xl border-2 border-amber-400 bg-amber-500/15 transition-all text-center scale-105 shadow-lg">
-                            <i class="fa-solid fa-magnifying-glass text-xl text-amber-300 mb-1"></i>
-                            <div class="text-sm font-black text-white uppercase">Analisar</div>
-                            <div class="text-[11px] text-amber-200">Caso Duvidoso (Humano)</div>
-                        </div>
-
-                        <div id="decision-box-deny" class="p-3.5 rounded-xl border border-slate-800 bg-slate-950/60 transition-all text-center">
-                            <i class="fa-solid fa-ban text-xl text-brandPurple-400 mb-1"></i>
-                            <div class="text-sm font-black text-white uppercase">Negar</div>
-                            <div class="text-[11px] text-slate-400">Perfil Mau Pagador</div>
-                        </div>
-                    </div>
-
-                    <!-- Mapa de Fronteira de Decisão 2D Interativo -->
-                    <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 relative">
-                        <div class="flex items-center justify-between text-[11px] text-slate-400 mb-2 px-1">
-                            <span class="font-bold text-slate-300">Mapa de Separação de Classes (Renda × Atrasos)</span>
-                            <div class="flex items-center gap-3">
-                                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-brandTeal-500"></span> Bom</span>
-                                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span> Análise</span>
-                                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-brandPurple-500"></span> Mau</span>
-                            </div>
-                        </div>
-
-                        <svg viewBox="0 0 560 220" class="w-full h-56 rounded-lg overflow-hidden bg-slate-900/90">
-                            <rect x="0" y="0" width="560" height="220" fill="rgba(245, 158, 11, 0.14)" />
-                            <rect x="0" y="0" width="151" height="220" fill="rgba(166, 125, 184, 0.18)" />
-                            <rect x="151" y="0" width="409" height="94" fill="rgba(166, 125, 184, 0.18)" />
-                            <rect x="235" y="158" width="325" height="62" fill="rgba(27, 122, 104, 0.22)" />
-                            <path d="M151,220 V0 M151,94 H560 M235,158 V220 M235,158 H560" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="5 5" fill="none" />
-                            <text x="465" y="210" fill="#94a3b8" font-size="11" font-weight="bold">Renda mensal →</text>
-                            <text x="12" y="18" fill="#94a3b8" font-size="11" font-weight="bold">↑ Atrasos</text>
-                            <g font-size="11" font-weight="bold">
-                                <circle cx="409" cy="190" r="7" fill="#14b8a6" stroke="#0f172a" stroke-width="2" /><text x="421" y="194" fill="#5eead4">Ana</text>
-                                <circle cx="261" cy="158" r="7" fill="#14b8a6" stroke="#0f172a" stroke-width="2" /><text x="273" y="162" fill="#5eead4">Carla</text>
-                                <circle cx="126" cy="94" r="7" fill="#a67db8" stroke="#0f172a" stroke-width="2" /><text x="138" y="98" fill="#d8b4fe">Diego</text>
-                                <circle cx="106" cy="62" r="7" fill="#a67db8" stroke="#0f172a" stroke-width="2" /><text x="118" y="66" fill="#d8b4fe">Bruno</text>
-                            </g>
-                            <!-- Pulso e Ponto do Cliente Selecionado -->
-                            <circle id="sim-pulse-circle" cx="210" cy="116" r="16" fill="rgba(251, 191, 36, 0.25)" />
-                            <circle id="sim-target-circle" cx="210" cy="116" r="9" fill="#fbbf24" stroke="#ffffff" stroke-width="2.5" />
-                            <text id="sim-target-label" x="224" y="120" fill="#ffffff" font-size="12" font-weight="900">Elisa (?)</text>
-                        </svg>
-                    </div>
-
-                </div>
-            </div>
-        </section>
-
-        <!-- MÓDULO 3: OS 3 CASOS REAIS -->
-        <section id="view-cases" class="hidden space-y-5 stage-animate">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
-                
-                <!-- CASO 1: FINANÇAS -->
-                <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between space-y-5">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <span class="text-[11px] font-mono uppercase text-brandTeal-400">CASO 01 • UCI STATLOG</span>
-                            <h3 class="text-xl font-black text-white">Finanças (Crédito)</h3>
-                        </div>
-                        <div class="w-10 h-10 rounded-xl bg-brandTeal-600/20 border border-brandTeal-500/40 flex items-center justify-center text-brandTeal-300">
-                            <i class="fa-solid fa-building-columns"></i>
-                        </div>
-                    </div>
-
-                    <!-- Donut SVG 70% vs 30% -->
-                    <div class="flex items-center justify-center py-2">
-                        <div class="relative w-40 h-40">
-                            <svg viewBox="0 0 36 36" class="w-full h-full -rotate-90">
-                                <circle cx="18" cy="18" r="15.915" fill="transparent" stroke="#a67db8" stroke-width="4.5"></circle>
-                                <circle cx="18" cy="18" r="15.915" fill="transparent" stroke="#1b7a68" stroke-width="4.5" stroke-dasharray="70 30" stroke-dashoffset="0"></circle>
-                            </svg>
-                            <div class="absolute inset-0 flex flex-col items-center justify-center">
-                                <span class="text-2xl font-black text-white">1.000</span>
-                                <span class="text-[11px] text-slate-400 font-mono">Clientes</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 4 Indicadores dos Slides -->
-                    <div class="grid grid-cols-2 gap-2.5">
-                        <div class="p-3 rounded-xl bg-slate-950 border border-brandTeal-500/30">
-                            <div class="text-xl font-black text-brandTeal-400">70% Bons</div>
-                            <div class="text-[11px] text-slate-400">700 pagaram em dia</div>
-                        </div>
-                        <div class="p-3 rounded-xl bg-slate-950 border border-brandPurple-500/30">
-                            <div class="text-xl font-black text-brandPurple-400">30% Maus</div>
-                            <div class="text-[11px] text-slate-400">300 com inadimplência</div>
-                        </div>
-                        <div class="p-3 rounded-xl bg-slate-950 border border-slate-800">
-                            <div class="text-lg font-black text-amber-400">5x Erro Caro</div>
-                            <div class="text-[11px] text-slate-400">Custo de aprovar mau</div>
-                        </div>
-                        <div class="p-3 rounded-xl bg-slate-950 border border-slate-800">
-                            <div class="text-lg font-black text-white">20 Atributos</div>
-                            <div class="text-[11px] text-slate-400">Valor, prazo, histórico...</div>
-                        </div>
-                    </div>
-                    <div class="text-[11px] text-slate-400"><strong class="text-slate-300">Variáveis:</strong> valor, prazo, histórico, poupança, emprego, idade</div>
-                </div>
-
-                <!-- CASO 2: SAÚDE -->
-                <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between space-y-5">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <span class="text-[11px] font-mono uppercase text-brandPurple-400">CASO 02 • WISCONSIN & STANFORD</span>
-                            <h3 class="text-xl font-black text-white">Saúde (Diagnóstico)</h3>
-                        </div>
-                        <div class="w-10 h-10 rounded-xl bg-brandPurple-500/20 border border-brandPurple-500/40 flex items-center justify-center text-brandPurple-300">
-                            <i class="fa-solid fa-microscope"></i>
-                        </div>
-                    </div>
-
-                    <!-- Donut SVG 63% vs 37% -->
-                    <div class="flex items-center justify-center py-2">
-                        <div class="relative w-40 h-40">
-                            <svg viewBox="0 0 36 36" class="w-full h-full -rotate-90">
-                                <circle cx="18" cy="18" r="15.915" fill="transparent" stroke="#a67db8" stroke-width="4.5"></circle>
-                                <circle cx="18" cy="18" r="15.915" fill="transparent" stroke="#1b7a68" stroke-width="4.5" stroke-dasharray="63 37" stroke-dashoffset="0"></circle>
-                            </svg>
-                            <div class="absolute inset-0 flex flex-col items-center justify-center">
-                                <span class="text-2xl font-black text-white">569</span>
-                                <span class="text-[11px] text-slate-400 font-mono">Pacientes</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-2.5">
-                        <div class="p-3 rounded-xl bg-slate-950 border border-brandTeal-500/30">
-                            <div class="text-xl font-black text-brandTeal-400">63% Benigno</div>
-                            <div class="text-[11px] text-slate-400">357 pacientes</div>
-                        </div>
-                        <div class="p-3 rounded-xl bg-slate-950 border border-brandPurple-500/30">
-                            <div class="text-xl font-black text-brandPurple-400">37% Maligno</div>
-                            <div class="text-[11px] text-slate-400">212 pacientes</div>
-                        </div>
-                        <div class="p-3 rounded-xl bg-slate-950 border border-slate-800">
-                            <div class="text-lg font-black text-white">129.450</div>
-                            <div class="text-[11px] text-slate-400">Imagens (Stanford, 2017)</div>
-                        </div>
-                        <div class="p-3 rounded-xl bg-slate-950 border border-slate-800">
-                            <div class="text-lg font-black text-amber-400">21 Médicos</div>
-                            <div class="text-[11px] text-slate-400">Dermatologistas comparados</div>
-                        </div>
-                    </div>
-                    <div class="text-[11px] text-slate-400"><strong class="text-slate-300">Variáveis:</strong> medidas das células (raio, textura, perímetro, área, suavidade)</div>
-                </div>
-
-                <!-- CASO 3: TECNOLOGIA -->
-                <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between space-y-5">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <span class="text-[11px] font-mono uppercase text-brandTeal-400">CASO 03 • HP LABS SPAMBASE</span>
-                            <h3 class="text-xl font-black text-white">Tecnologia (Spam)</h3>
-                        </div>
-                        <div class="w-10 h-10 rounded-xl bg-brandTeal-600/20 border border-brandTeal-500/40 flex items-center justify-center text-brandTeal-300">
-                            <i class="fa-solid fa-envelope-circle-check"></i>
-                        </div>
-                    </div>
-
-                    <!-- Gráfico de barras -->
-                    <div class="flex items-end justify-center gap-8 h-40 pt-6 px-4 bg-slate-950/60 rounded-xl border border-slate-800/80">
-                        <div class="flex flex-col items-center gap-1.5 w-20">
-                            <span class="text-xs font-mono font-bold text-brandTeal-300">2.788</span>
-                            <div class="w-full bg-brandTeal-600 rounded-t-lg transition-all" style="height: 92px;"></div>
-                            <span class="text-[11px] font-bold text-slate-300">Não spam</span>
-                        </div>
-                        <div class="flex flex-col items-center gap-1.5 w-20">
-                            <span class="text-xs font-mono font-bold text-brandPurple-300">1.813</span>
-                            <div class="w-full bg-brandPurple-500 rounded-t-lg transition-all" style="height: 60px;"></div>
-                            <span class="text-[11px] font-bold text-slate-300">Spam</span>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-2.5">
-                        <div class="p-3 rounded-xl bg-slate-950 border border-brandTeal-500/30">
-                            <div class="text-xl font-black text-brandTeal-400">61% Legítimo</div>
-                            <div class="text-[11px] text-slate-400">2.788 de 4.601 e-mails</div>
-                        </div>
-                        <div class="p-3 rounded-xl bg-slate-950 border border-brandPurple-500/30">
-                            <div class="text-xl font-black text-brandPurple-400">39% Spam</div>
-                            <div class="text-[11px] text-slate-400">1.813 indesejados</div>
-                        </div>
-                        <div class="col-span-2 p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
-                            <div>
-                                <div class="text-base font-black text-amber-400">&gt; 99,9% Bloqueio no Gmail</div>
-                                <div class="text-[11px] text-slate-400">Proteção ativa contra spam, phishing e malware</div>
-                            </div>
-                            <i class="fa-solid fa-shield-halved text-2xl text-brandTeal-400"></i>
-                        </div>
-                    </div>
-                    <div class="text-[11px] text-slate-400"><strong class="text-slate-300">Variáveis:</strong> frequência de palavras e símbolos ($, !) e uso de maiúsculas</div>
-                </div>
-
-            </div>
-        </section>
-
-        <!-- MÓDULO 4: VISÃO GERAL, DIFERENÇAS E VANTAGENS/DESAFIOS -->
-        <section id="view-concepts" class="hidden space-y-5 stage-animate">
-            
-            <!-- Linha 1: 4 Pilares + 5 Perguntas de Negócio -->
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
-                
-                <!-- O que é Classificação -->
-                <div class="lg:col-span-5 bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-4">
-                    <h3 class="text-lg font-black text-white">O que é Classificação?</h3>
-                    <div class="grid grid-cols-2 gap-3">
-                        <div class="p-3.5 rounded-xl bg-slate-950 border border-slate-800">
-                            <i class="fa-solid fa-tags text-brandTeal-400 mb-1.5"></i>
-                            <div class="text-xs font-bold text-white">Prever Categoria</div>
-                            <div class="text-[11px] text-slate-400 mt-0.5">Define a classe com base em dados</div>
-                        </div>
-                        <div class="p-3.5 rounded-xl bg-slate-950 border border-slate-800">
-                            <i class="fa-solid fa-graduation-cap text-brandPurple-400 mb-1.5"></i>
-                            <div class="text-xs font-bold text-white">Com Gabarito</div>
-                            <div class="text-[11px] text-slate-400 mt-0.5">Aprendizado supervisionado</div>
-                        </div>
-                        <div class="p-3.5 rounded-xl bg-slate-950 border border-slate-800">
-                            <i class="fa-solid fa-sliders text-brandTeal-400 mb-1.5"></i>
-                            <div class="text-xs font-bold text-white">Entrada: Atributos</div>
-                            <div class="text-[11px] text-slate-400 mt-0.5">Renda, idade, histórico...</div>
-                        </div>
-                        <div class="p-3.5 rounded-xl bg-slate-950 border border-slate-800">
-                            <i class="fa-solid fa-bullseye text-brandPurple-400 mb-1.5"></i>
-                            <div class="text-xs font-bold text-white">Saída: Classe</div>
-                            <div class="text-[11px] text-slate-400 mt-0.5">Bom/Mau, Spam/Não Spam (binária ou multiclasse)</div>
-                        </div>
-                    </div>
-                    <div class="p-3.5 rounded-xl bg-slate-950 border border-brandTeal-500/30 text-xs text-slate-300"><i class="fa-solid fa-book-open text-brandTeal-400 mr-1.5"></i><strong class="text-white">Analogia:</strong> é como estudar com provas antigas que têm gabarito. Na prova nova, sem gabarito, você responde sozinho com o que aprendeu.</div>
-                </div>
-
-                <!-- 5 Perguntas de Negócio -->
-                <div class="lg:col-span-7 bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3">
-                    <h3 class="text-lg font-black text-white">5 Perguntas de Negócio</h3>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
-                        <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
-                            <span class="text-slate-200"><i class="fa-solid fa-money-check-dollar text-slate-500 mr-2"></i>"Vai pagar ou dar calote?"</span>
-                            <span class="px-2 py-0.5 rounded bg-brandTeal-500/20 text-brandTeal-300 font-bold">Crédito</span>
-                        </div>
-                        <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
-                            <span class="text-slate-200"><i class="fa-solid fa-envelope text-slate-500 mr-2"></i>"É spam ou legítimo?"</span>
-                            <span class="px-2 py-0.5 rounded bg-brandPurple-500/20 text-brandPurple-300 font-bold">Filtro Spam</span>
-                        </div>
-                        <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
-                            <span class="text-slate-200"><i class="fa-solid fa-stethoscope text-slate-500 mr-2"></i>"Tumor benigno ou maligno?"</span>
-                            <span class="px-2 py-0.5 rounded bg-brandTeal-500/20 text-brandTeal-300 font-bold">Diagnóstico</span>
-                        </div>
-                        <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
-                            <span class="text-slate-200"><i class="fa-solid fa-user-xmark text-slate-500 mr-2"></i>"Vai cancelar o serviço?"</span>
-                            <span class="px-2 py-0.5 rounded bg-brandPurple-500/20 text-brandPurple-300 font-bold">Retenção</span>
-                        </div>
-                        <div class="sm:col-span-2 p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
-                            <span class="text-slate-200"><i class="fa-solid fa-credit-card text-slate-500 mr-2"></i>"Essa compra no cartão é mesmo do cliente?"</span>
-                            <span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold">Antifraude</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Linha 2: Não Confunda as Tarefas + Vantagens e Desafios -->
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
-                
-                <!-- Não Confunda as Tarefas -->
-                <div class="lg:col-span-6 bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3">
-                    <h3 class="text-lg font-black text-white">Não Confunda as Tarefas</h3>
-                    <table class="w-full text-left border-collapse text-xs">
-                        <thead>
-                            <tr class="border-b border-slate-800 text-slate-400">
-                                <th class="py-2 px-2">Critério</th>
-                                <th class="py-2 px-2 text-brandTeal-300 font-extrabold bg-brandTeal-900/20">Classificação</th>
-                                <th class="py-2 px-2">Agrupamento</th>
-                                <th class="py-2 px-2">Regressão</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-800/70">
-                            <tr>
-                                <td class="py-2.5 px-2 text-slate-400 font-semibold">Aprendizado</td>
-                                <td class="py-2.5 px-2 text-brandTeal-300 font-bold bg-brandTeal-900/10">Supervisionado</td>
-                                <td class="py-2.5 px-2 text-slate-300">Não supervisionado</td>
-                                <td class="py-2.5 px-2 text-slate-300">Supervisionado</td>
-                            </tr>
-                            <tr>
-                                <td class="py-2.5 px-2 text-slate-400 font-semibold">Resposta</td>
-                                <td class="py-2.5 px-2 text-brandTeal-300 font-bold bg-brandTeal-900/10">Uma categoria</td>
-                                <td class="py-2.5 px-2 text-slate-300">Grupos descobertos</td>
-                                <td class="py-2.5 px-2 text-slate-300">Número contínuo</td>
-                            </tr>
-                            <tr>
-                                <td class="py-2.5 px-2 text-slate-400 font-semibold">Exemplo</td>
-                                <td class="py-2.5 px-2 text-brandTeal-300 font-bold bg-brandTeal-900/10">Bom ou mau pagador</td>
-                                <td class="py-2.5 px-2 text-slate-300">Perfis de clientes</td>
-                                <td class="py-2.5 px-2 text-slate-300">Preço de imóvel</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Vantagens e Desafios (Visual e Direto) -->
-                <div class="lg:col-span-6 bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3">
-                    <h3 class="text-lg font-black text-white">Vantagens e Desafios</h3>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                        <div class="p-3.5 rounded-xl bg-slate-950 border border-brandTeal-500/30 space-y-2">
-                            <div class="font-extrabold text-brandTeal-400 uppercase flex items-center gap-1.5">
-                                <i class="fa-solid fa-circle-plus"></i> Vantagens
-                            </div>
-                            <div class="text-slate-300"><i class="fa-solid fa-shield-halved text-brandTeal-400 mr-1.5"></i><strong>Redução de riscos:</strong> Evita calotes (erro 5x) e fraudes.</div>
-                            <div class="text-slate-300"><i class="fa-solid fa-gauge-high text-brandTeal-400 mr-1.5"></i><strong>Escala:</strong> o Gmail bloqueia mais de 99,9% de spam, phishing e malware (Google).</div>
-                            <div class="text-slate-300"><i class="fa-solid fa-user-doctor text-brandTeal-400 mr-1.5"></i><strong>Apoio clínico:</strong> rede neural comparada a 21 dermatologistas.</div>
-                            <div class="text-slate-300"><i class="fa-solid fa-chart-line text-brandTeal-400 mr-1.5"></i><strong>Otimização e vendas:</strong> retenção de clientes e decisões mais rápidas.</div>
-                        </div>
-                        <div class="p-3.5 rounded-xl bg-slate-950 border border-brandPurple-500/30 space-y-2">
-                            <div class="font-extrabold text-brandPurple-400 uppercase flex items-center gap-1.5">
-                                <i class="fa-solid fa-triangle-exclamation"></i> Desafios
-                            </div>
-                            <div class="text-slate-300"><i class="fa-solid fa-database text-brandPurple-400 mr-1.5"></i><strong>Volume rotulado:</strong> Exige milhares de dados com gabarito.</div>
-                            <div class="text-slate-300"><i class="fa-solid fa-scale-balanced text-brandPurple-400 mr-1.5"></i><strong>Desbalanceamento:</strong> Classes raras exigem ajuste de custo.</div>
-                            <div class="text-slate-300"><i class="fa-solid fa-eye text-brandPurple-400 mr-1.5"></i><strong>Interpretabilidade:</strong> Explicar decisões de redes complexas.</div>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-        </section>
-
-    </main>
-
-    <!-- Rodapé Minimalista -->
-    <footer class="border-t border-slate-900/90 bg-slate-950/90 py-3 px-4 lg:px-8 text-[11px] text-slate-500">
-        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
-            <span><strong>Fontes:</strong> Fayyad et al. (1996) • UCI Machine Learning Repository (German Credit, Breast Cancer Wisconsin, Spambase) • Esteva et al., Nature (2017)</span>
-            
-        </div>
-    </footer>
-
-    <script>
-                let activeStep = 0; // 0..4
-        let autoTimer = null;
-        const activeTabClass = 'nav-tab px-4 py-3 text-sm border-b-2 border-teal-400 text-white flex items-center gap-2 whitespace-nowrap';
-        const inactiveTabClass = 'nav-tab px-4 py-3 text-sm border-b-2 border-transparent text-slate-400 hover:text-white flex items-center gap-2 whitespace-nowrap';
-
-        // Estados de animação dentro das etapas
-        let stageCleaned = false;
-        let stageNormalized = false;
-
-        const kddData = {
-            credit: {
-                steps: [
-                    {
-                        name: "Seleção",
-                        sub: "1.000 clientes e 20 atributos (valor, prazo, histórico...)",
-                        metric: "1.000 Registros • 20 Atributos",
-                        inTxt: "Repositório Statlog (German Credit)",
-                        actTxt: "Seleção dos 20 atributos financeiros",
-                        outTxt: "Base Alvo (700 Bons | 300 Maus)"
-                    },
-                    {
-                        name: "Pré-processamento",
-                        sub: "Checa dados faltando, erros e confere os rótulos",
-                        metric: "Higienização & Gabarito",
-                        inTxt: "Registros com ruídos ou nulos",
-                        actTxt: "Correção de falhas e validação de classe",
-                        outTxt: "Base 100% Íntegra e Rotulada"
-                    },
-                    {
-                        name: "Transformação",
-                        sub: "Categorias viram números, escalas padronizadas",
-                        metric: "Encoding & Escala [0, 1]",
-                        inTxt: "Textos e escalas diferentes (R$ vs Qtd)",
-                        actTxt: "Conversão numérica e normalização",
-                        outTxt: "Vetores Matemáticos Padronizados"
-                    },
-                    {
-                        name: "Mineração",
-                        sub: "Classificador aprende com parte dos clientes (treino)",
-                        metric: "Treino Supervisionado",
-                        inTxt: "Exemplos com gabarito (Ana, Bruno, Carla, Diego)",
-                        actTxt: "Algoritmo extrai regras de separação",
-                        outTxt: "Modelo Classificador Treinado"
-                    },
-                    {
-                        name: "Interpretação",
-                        sub: "Avalia o modelo no resto da base e apoia a decisão de crédito",
-                        metric: "70% Bons • 30% Maus • Custo 5x",
-                        inTxt: "Base de Teste + Matriz de Custo (5x)",
-                        actTxt: "Validação de acurácia e risco",
-                        outTxt: "Decisão: Aprovar, Analisar ou Negar"
-                    }
-                ]
-            }
-        };
-
-        function renderPipelineNodes() {
-            const container = document.getElementById('kdd-nodes-container');
-            const steps = kddData.credit.steps;
-            const icons = ['fa-database', 'fa-wand-magic-sparkles', 'fa-sliders', 'fa-microchip', 'fa-chart-pie'];
-
-            container.innerHTML = steps.map((step, index) => {
-                const isCurrent = index === activeStep;
-                const isPast = index < activeStep;
-
-                let boxClass = 'bg-slate-950/70 border-slate-800 text-slate-400 hover:border-slate-700';
-                let numClass = 'bg-slate-900 text-slate-500 border border-slate-800';
-
-                if (isCurrent) {
-                    boxClass = 'bg-gradient-to-br from-brandTeal-900/70 to-slate-900 border-brandTeal-400 text-white active-node-pulse';
-                    numClass = 'bg-brandTeal-400 text-slate-950 font-black';
-                } else if (isPast) {
-                    boxClass = 'bg-slate-900/90 border-brandTeal-600/50 text-slate-200';
-                    numClass = 'bg-brandTeal-600/30 text-brandTeal-300 border border-brandTeal-500/40';
-                }
-
-                return `
-                    <div onclick="selectStep(${index})" class="cursor-pointer rounded-xl p-3 border transition-all relative flex items-center gap-3 ${boxClass}">
-                        <div class="w-8 h-8 rounded-lg text-xs flex items-center justify-center font-mono flex-shrink-0 ${numClass}">
-                            ${isPast ? '<i class="fa-solid fa-check"></i>' : `0${index + 1}`}
-                        </div>
-                        <div class="min-w-0 flex-1">
-                            <div class="text-xs font-extrabold uppercase tracking-wide truncate ${isCurrent ? 'text-brandTeal-300' : ''}">${step.name}</div>
-                            <div class="text-[11px] text-slate-400 truncate">${step.sub}</div>
-                        </div>
-                        <i class="fa-solid ${icons[index]} text-xs ${isCurrent ? 'text-brandTeal-300' : 'text-slate-600'}"></i>
-                        ${index < 4 ? `
-                            <div class="hidden md:block absolute -right-3.5 top-1/2 -translate-y-1/2 w-4 h-0.5 z-20 ${index <= activeStep ? 'bg-brandTeal-500/60' : 'bg-slate-800'}">
-                                ${index === activeStep ? '<span class="pipeline-particle"></span>' : ''}
-                            </div>
-                        ` : ''}
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function renderCurrentStage() {
-            const st = kddData.credit.steps[activeStep];
-            document.getElementById('stage-badge').textContent = `ETAPA 0${activeStep + 1} / 05`;
-            document.getElementById('stage-metric-pill').textContent = st.metric;
-            document.getElementById('stage-main-title').textContent = st.name;
-            document.getElementById('stage-short-subtitle').textContent = st.sub;
-            document.getElementById('stage-in-text').textContent = st.inTxt;
-            document.getElementById('stage-act-text').textContent = st.actTxt;
-            document.getElementById('stage-out-text').textContent = st.outTxt;
-
-            const stageCanvas = document.getElementById('kdd-visual-stage');
-            const actionSlot = document.getElementById('stage-action-slot');
-
-            if (activeStep === 0) renderVisualStep1(stageCanvas, actionSlot);
-            else if (activeStep === 1) renderVisualStep2(stageCanvas, actionSlot);
-            else if (activeStep === 2) renderVisualStep3(stageCanvas, actionSlot);
-            else if (activeStep === 3) renderVisualStep4(stageCanvas, actionSlot);
-            else if (activeStep === 4) renderVisualStep5(stageCanvas, actionSlot);
-        }
-
-        function renderVisualStep1(canvas, actionSlot) {
-            actionSlot.innerHTML = `
-                <button onclick="changeStep(1)" class="w-full py-2.5 px-4 rounded-xl bg-brandTeal-600 hover:bg-brandTeal-500 text-white font-bold text-xs transition flex items-center justify-center gap-2">
-                    <span>Enviar Seleção para Pré-processamento</span>
-                    <i class="fa-solid fa-arrow-right"></i>
-                </button>
-            `;
-
-                            canvas.innerHTML = `
-                    <div class="space-y-4 stage-animate">
-                        <div class="flex items-center justify-between text-xs text-slate-400 px-1">
-                            <span class="font-bold text-white uppercase tracking-wider"><i class="fa-solid fa-filter text-brandTeal-400 mr-1.5"></i>Seleção de Atributos: Statlog German Credit (UCI)</span>
-                            <span class="font-mono text-brandTeal-300">1.000 clientes × 20 atributos</span>
-                        </div>
-
-                        <!-- Grade de Atributos Selecionados vs Descartados -->
-                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                            <div class="p-3 rounded-xl bg-brandTeal-900/25 border border-brandTeal-500/50 flex items-center gap-2.5">
-                                <i class="fa-solid fa-circle-check text-brandTeal-400"></i>
-                                <div>
-                                    <div class="text-xs font-bold text-white">Renda Mensal</div>
-                                    <div class="text-[10px] text-brandTeal-300 font-mono">Selecionado</div>
-                                </div>
-                            </div>
-                            <div class="p-3 rounded-xl bg-brandTeal-900/25 border border-brandTeal-500/50 flex items-center gap-2.5">
-                                <i class="fa-solid fa-circle-check text-brandTeal-400"></i>
-                                <div>
-                                    <div class="text-xs font-bold text-white">Histórico / Atrasos</div>
-                                    <div class="text-[10px] text-brandTeal-300 font-mono">Selecionado</div>
-                                </div>
-                            </div>
-                            <div class="p-3 rounded-xl bg-brandTeal-900/25 border border-brandTeal-500/50 flex items-center gap-2.5">
-                                <i class="fa-solid fa-circle-check text-brandTeal-400"></i>
-                                <div>
-                                    <div class="text-xs font-bold text-white">Valor & Prazo</div>
-                                    <div class="text-[10px] text-brandTeal-300 font-mono">Selecionado</div>
-                                </div>
-                            </div>
-                            <div class="p-3 rounded-xl bg-brandTeal-900/25 border border-brandTeal-500/50 flex items-center gap-2.5">
-                                <i class="fa-solid fa-circle-check text-brandTeal-400"></i>
-                                <div>
-                                    <div class="text-xs font-bold text-white">Poupança & Emprego</div>
-                                    <div class="text-[10px] text-brandTeal-300 font-mono">Selecionado</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Amostra Visual da Tabela Selecionada -->
-                        <div class="rounded-xl border border-slate-800 bg-slate-950 overflow-hidden">
-                            <table class="w-full text-left border-collapse text-xs font-mono">
-                                <thead>
-                                    <tr class="bg-slate-900 text-slate-400 border-b border-slate-800 font-sans">
-                                        <th class="py-2.5 px-3">Cliente</th>
-                                        <th class="py-2.5 px-3 text-brandTeal-300">Renda</th>
-                                        <th class="py-2.5 px-3 text-brandTeal-300">Atrasos</th>
-                                        <th class="py-2.5 px-3 text-slate-600 line-through">Telefone</th>
-                                        <th class="py-2.5 px-3 text-brandPurple-300">Classe (Gabarito)</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-slate-800/60">
-                                    <tr>
-                                        <td class="py-2 px-3 font-sans font-bold text-white">Ana</td>
-                                        <td class="py-2 px-3 text-brandTeal-300">R$ 6.500</td>
-                                        <td class="py-2 px-3 text-brandTeal-300">0</td>
-                                        <td class="py-2 px-3 text-slate-700 line-through">9912-0011</td>
-                                        <td class="py-2 px-3"><span class="px-2 py-0.5 rounded bg-brandTeal-600/30 text-brandTeal-300 font-sans font-bold">Bom pagador</span></td>
-                                    </tr>
-                                    <tr>
-                                        <td class="py-2 px-3 font-sans font-bold text-white">Bruno</td>
-                                        <td class="py-2 px-3 text-brandTeal-300">R$ 1.800</td>
-                                        <td class="py-2 px-3 text-brandPurple-300">4</td>
-                                        <td class="py-2 px-3 text-slate-700 line-through">9881-2231</td>
-                                        <td class="py-2 px-3"><span class="px-2 py-0.5 rounded bg-brandPurple-500/30 text-brandPurple-300 font-sans font-bold">Mau pagador</span></td>
-                                    </tr>
-                                    <tr>
-                                        <td class="py-2 px-3 font-sans font-bold text-white">Carla</td>
-                                        <td class="py-2 px-3 text-brandTeal-300">R$ 4.200</td>
-                                        <td class="py-2 px-3 text-brandTeal-300">1</td>
-                                        <td class="py-2 px-3 text-slate-700 line-through">9923-4410</td>
-                                        <td class="py-2 px-3"><span class="px-2 py-0.5 rounded bg-brandTeal-600/30 text-brandTeal-300 font-sans font-bold">Bom pagador</span></td>
-                                    </tr>
-                                    <tr>
-                                        <td class="py-2 px-3 font-sans font-bold text-white">Diego</td>
-                                        <td class="py-2 px-3 text-brandTeal-300">R$ 2.100</td>
-                                        <td class="py-2 px-3 text-brandPurple-300">3</td>
-                                        <td class="py-2 px-3 text-slate-700 line-through">9811-9090</td>
-                                        <td class="py-2 px-3"><span class="px-2 py-0.5 rounded bg-brandPurple-500/30 text-brandPurple-300 font-sans font-bold">Mau pagador</span></td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                        <p class="text-[11px] text-slate-500">Dados ilustrativos, inventados para explicar.</p>
-                    </div>
-                `;
-        }
-
-        function renderVisualStep2(canvas, actionSlot) {
-            actionSlot.innerHTML = `
-                <button onclick="toggleStageClean()" class="w-full py-2.5 px-4 rounded-xl font-bold text-xs transition flex items-center justify-center gap-2 ${stageCleaned ? 'bg-slate-800 text-brandTeal-300 border border-brandTeal-500/40' : 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-lg'}">
-                    <i class="fa-solid ${stageCleaned ? 'fa-rotate-left' : 'fa-broom'}"></i>
-                    <span>${stageCleaned ? 'Ver Antes da Limpeza' : 'Limpar Dados Faltando e Erros'}</span>
-                </button>
-            `;
-
-            canvas.innerHTML = `
-                <div class="space-y-4 stage-animate relative">
-                    ${!stageCleaned ? '<div class="scanner-beam"></div>' : ''}
-                    
-                    <div class="flex items-center justify-between px-3.5 py-2.5 rounded-xl border ${stageCleaned ? 'bg-brandTeal-950/30 border-brandTeal-500/40 text-brandTeal-300' : 'bg-amber-950/30 border-amber-500/40 text-amber-300'} text-xs font-bold">
-                        <span><i class="fa-solid ${stageCleaned ? 'fa-circle-check' : 'fa-triangle-exclamation'} mr-2"></i>${stageCleaned ? 'Dados faltando corrigidos e rótulos conferidos!' : 'Inconsistências detectadas: valores faltando, erros e rótulo pendente'}</span>
-                        <span class="font-mono">${stageCleaned ? '100% Íntegro' : '3 Alertas'}</span>
-                    </div>
-
-                    <div class="rounded-xl border border-slate-800 bg-slate-950 overflow-hidden">
-                        <table class="w-full text-left border-collapse text-xs font-mono">
-                            <thead>
-                                <tr class="bg-slate-900 text-slate-400 border-b border-slate-800 font-sans">
-                                    <th class="py-2.5 px-3">Registro (ilustrativo)</th>
-                                    <th class="py-2.5 px-3">Atributo 1 (Valor/Renda)</th>
-                                    <th class="py-2.5 px-3">Atributo 2 (Idade/Prazo)</th>
-                                    <th class="py-2.5 px-3">Rótulo (Gabarito)</th>
-                                    <th class="py-2.5 px-3">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-800/60">
-                                <tr>
-                                    <td class="py-3 px-3 text-slate-300">#REG-104</td>
-                                    <td class="py-3 px-3 ${stageCleaned ? 'text-brandTeal-300 font-bold' : 'text-rose-400 font-bold'}">${stageCleaned ? 'R$ 3.500 (Preenchido)' : 'NULL (Faltando)'}</td>
-                                    <td class="py-3 px-3 text-slate-300">24 meses</td>
-                                    <td class="py-3 px-3 text-brandTeal-300">Bom pagador</td>
-                                    <td class="py-3 px-3 font-sans">${stageCleaned ? '<span class="text-brandTeal-400 font-bold">Corrigido</span>' : '<span class="text-amber-400 font-bold">Dado Faltando</span>'}</td>
-                                </tr>
-                                <tr>
-                                    <td class="py-3 px-3 text-slate-300">#REG-289</td>
-                                    <td class="py-3 px-3 text-slate-300">R$ 2.100</td>
-                                    <td class="py-3 px-3 ${stageCleaned ? 'text-brandTeal-300 font-bold' : 'text-rose-400 font-bold'}">${stageCleaned ? '29 anos' : '-12 anos (Erro)'}</td>
-                                    <td class="py-3 px-3 text-brandPurple-300">Mau pagador</td>
-                                    <td class="py-3 px-3 font-sans">${stageCleaned ? '<span class="text-brandTeal-400 font-bold">Corrigido</span>' : '<span class="text-rose-400 font-bold">Erro de Valor</span>'}</td>
-                                </tr>
-                                <tr>
-                                    <td class="py-3 px-3 text-slate-300">#REG-512</td>
-                                    <td class="py-3 px-3 text-slate-300">R$ 6.500</td>
-                                    <td class="py-3 px-3 text-slate-300">18 meses</td>
-                                    <td class="py-3 px-3 ${stageCleaned ? 'text-brandTeal-300 font-bold' : 'text-amber-300 font-bold'}">${stageCleaned ? 'Bom pagador' : '"bom_pgto???"'}</td>
-                                    <td class="py-3 px-3 font-sans">${stageCleaned ? '<span class="text-brandTeal-400 font-bold">Conferido</span>' : '<span class="text-amber-400 font-bold">Conferir Rótulo</span>'}</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            `;
-        }
-
-        function toggleStageClean() {
-            stageCleaned = !stageCleaned;
-            renderCurrentStage();
-        }
-
-        function renderVisualStep3(canvas, actionSlot) {
-            actionSlot.innerHTML = `
-                <button onclick="toggleStageNorm()" class="w-full py-2.5 px-4 rounded-xl font-bold text-xs transition flex items-center justify-center gap-2 ${stageNormalized ? 'bg-slate-800 text-brandTeal-300 border border-brandTeal-500/40' : 'bg-brandTeal-500 hover:bg-brandTeal-400 text-slate-950 shadow-lg'}">
-                    <i class="fa-solid fa-repeat"></i>
-                    <span>${stageNormalized ? 'Ver Dados Originais' : 'Transformar em Números e Padronizar Escalas'}</span>
-                </button>
-            `;
-
-            canvas.innerHTML = `
-                <div class="space-y-4 stage-animate">
-                    <div class="grid grid-cols-2 gap-3 text-xs">
-                        <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
-                            <span class="text-slate-400">Categorias → Números:</span>
-                            <span class="font-mono font-bold text-brandTeal-300">Bom = 1 | Mau = 0</span>
-                        </div>
-                        <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
-                            <span class="text-slate-400">Escalas Padronizadas:</span>
-                            <span class="font-mono font-bold text-brandPurple-300">Faixa [0.00 a 1.00]</span>
-                        </div>
-                    </div>
-
-                    <div class="rounded-xl border border-slate-800 bg-slate-950 overflow-hidden">
-                        <table class="w-full text-left border-collapse text-xs font-mono">
-                            <thead>
-                                <tr class="bg-slate-900 text-slate-400 border-b border-slate-800 font-sans">
-                                    <th class="py-2.5 px-3">Cliente</th>
-                                    <th class="py-2.5 px-3">${stageNormalized ? 'Renda Padronizada [0-1]' : 'Renda Original'}</th>
-                                    <th class="py-2.5 px-3">${stageNormalized ? 'Atrasos Padronizados [0-1]' : 'Atrasos Originais'}</th>
-                                    <th class="py-2.5 px-3">${stageNormalized ? 'Classe Numérica' : 'Classe Categórica'}</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-800/60">
-                                <tr>
-                                    <td class="py-2.5 px-3 font-sans font-bold text-white">Ana</td>
-                                    <td class="py-2.5 px-3 text-brandTeal-300">${stageNormalized ? '1.00 (Escala Máx)' : 'R$ 6.500'}</td>
-                                    <td class="py-2.5 px-3 text-brandTeal-300">${stageNormalized ? '0.00' : '0 atrasos'}</td>
-                                    <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded bg-brandTeal-500/20 text-brandTeal-300 font-bold">${stageNormalized ? '1' : 'Bom pagador'}</span></td>
-                                </tr>
-                                <tr>
-                                    <td class="py-2.5 px-3 font-sans font-bold text-white">Bruno</td>
-                                    <td class="py-2.5 px-3 text-brandPurple-300">${stageNormalized ? '0.00 (Escala Mín)' : 'R$ 1.800'}</td>
-                                    <td class="py-2.5 px-3 text-brandPurple-300">${stageNormalized ? '1.00' : '4 atrasos'}</td>
-                                    <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded bg-brandPurple-500/20 text-brandPurple-300 font-bold">${stageNormalized ? '0' : 'Mau pagador'}</span></td>
-                                </tr>
-                                <tr>
-                                    <td class="py-2.5 px-3 font-sans font-bold text-white">Carla</td>
-                                    <td class="py-2.5 px-3 text-brandTeal-300">${stageNormalized ? '0.51' : 'R$ 4.200'}</td>
-                                    <td class="py-2.5 px-3 text-brandTeal-300">${stageNormalized ? '0.25' : '1 atraso'}</td>
-                                    <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded bg-brandTeal-500/20 text-brandTeal-300 font-bold">${stageNormalized ? '1' : 'Bom pagador'}</span></td>
-                                </tr>
-                                <tr>
-                                    <td class="py-2.5 px-3 font-sans font-bold text-white">Diego</td>
-                                    <td class="py-2.5 px-3 text-brandPurple-300">${stageNormalized ? '0.06' : 'R$ 2.100'}</td>
-                                    <td class="py-2.5 px-3 text-brandPurple-300">${stageNormalized ? '0.75' : '3 atrasos'}</td>
-                                    <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded bg-brandPurple-500/20 text-brandPurple-300 font-bold">${stageNormalized ? '0' : 'Mau pagador'}</span></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            `;
-        }
-
-        function toggleStageNorm() {
-            stageNormalized = !stageNormalized;
-            renderCurrentStage();
-        }
-
-        function renderVisualStep4(canvas, actionSlot) {
-            actionSlot.innerHTML = `
-                <button onclick="switchView('sim')" class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-brandPurple-600 to-brandTeal-600 hover:from-brandPurple-500 hover:to-brandTeal-500 text-white font-bold text-xs shadow-lg transition flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-sliders"></i>
-                    <span>Testar Elisa no Simulador ao Vivo</span>
-                </button>
-            `;
-
-            canvas.innerHTML = `
-                <div class="space-y-4 stage-animate">
-                    <!-- Como a máquina aprende -->
-                    <div class="grid grid-cols-4 gap-2 text-center">
-                        <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800">
-                            <div class="text-xs font-mono font-black text-brandTeal-400">01. Exemplos</div>
-                            <div class="text-[11px] text-slate-400">Dados com gabarito</div>
-                        </div>
-                        <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800">
-                            <div class="text-xs font-mono font-black text-brandTeal-400">02. Treino</div>
-                            <div class="text-[11px] text-slate-400">Acha padrões</div>
-                        </div>
-                        <div class="p-2.5 rounded-xl bg-slate-950 border border-amber-500/40">
-                            <div class="text-xs font-mono font-black text-amber-300">03. Novo Dado</div>
-                            <div class="text-[11px] text-slate-300">Chega sem rótulo (?)</div>
-                        </div>
-                        <div class="p-2.5 rounded-xl bg-slate-950 border border-brandPurple-500/40">
-                            <div class="text-xs font-mono font-black text-brandPurple-300">04. Palpite</div>
-                            <div class="text-[11px] text-slate-300">Devolve a classe</div>
-                        </div>
-                    </div>
-
-                    <!-- Grafo Animado do Classificador em Ação -->
-                    <div class="bg-slate-950 border border-slate-800 rounded-xl p-3">
-                        <svg viewBox="0 0 640 210" class="w-full h-48">
-                            <!-- Linhas animadas com fluxo -->
-                            <path d="M150,55 L310,105" stroke="#14b8a6" stroke-width="2.5" class="svg-flow-line" fill="none" />
-                            <path d="M150,155 L310,105" stroke="#a67db8" stroke-width="2.5" class="svg-flow-line" fill="none" />
-
-                            <path d="M350,105 L495,45" stroke="#14b8a6" stroke-width="2.5" class="svg-flow-line" fill="none" />
-                            <path d="M350,105 L495,105" stroke="#fbbf24" stroke-width="2.5" class="svg-flow-line" fill="none" />
-                            <path d="M350,105 L495,165" stroke="#a67db8" stroke-width="2.5" class="svg-flow-line" fill="none" />
-
-                            <!-- Entrada: Exemplos Rotulados -->
-                            <rect x="15" y="25" width="135" height="55" rx="10" fill="#0f172a" stroke="#14b8a6" stroke-width="2" />
-                            <text x="82" y="48" text-anchor="middle" fill="#5eead4" font-size="11" font-weight="bold">Ana & Carla</text>
-                            <text x="82" y="65" text-anchor="middle" fill="#94a3b8" font-size="10">Rótulo: Bom (1)</text>
-
-                            <rect x="15" y="125" width="135" height="55" rx="10" fill="#0f172a" stroke="#a67db8" stroke-width="2" />
-                            <text x="82" y="148" text-anchor="middle" fill="#d8b4fe" font-size="11" font-weight="bold">Bruno & Diego</text>
-                            <text x="82" y="165" text-anchor="middle" fill="#94a3b8" font-size="10">Rótulo: Mau (0)</text>
-
-                            <!-- Nó Central: Modelo Classificador -->
-                            <circle cx="330" cy="105" r="42" fill="#0f172a" stroke="#2dd4bf" stroke-width="3" />
-                            <text x="330" y="101" text-anchor="middle" fill="#ffffff" font-size="11" font-weight="900">MODELO</text>
-                            <text x="330" y="116" text-anchor="middle" fill="#5eead4" font-size="9" font-family="JetBrains Mono">Cruza Dados</text>
-
-                            <!-- Saídas: Decisão -->
-                            <rect x="495" y="22" width="130" height="44" rx="8" fill="rgba(20, 184, 166, 0.2)" stroke="#14b8a6" stroke-width="2" />
-                            <text x="560" y="48" text-anchor="middle" fill="#5eead4" font-size="11" font-weight="bold">BOM PAGADOR</text>
-
-                            <rect x="495" y="83" width="130" height="44" rx="8" fill="rgba(251, 191, 36, 0.2)" stroke="#fbbf24" stroke-width="2" />
-                            <text x="560" y="104" text-anchor="middle" fill="#fde68a" font-size="11" font-weight="bold">ELISA (R$ 3k | 2)</text>
-                            <text x="560" y="118" text-anchor="middle" fill="#ffffff" font-size="9">→ Analisar</text>
-
-                            <rect x="495" y="144" width="130" height="44" rx="8" fill="rgba(166, 125, 184, 0.2)" stroke="#a67db8" stroke-width="2" />
-                            <text x="560" y="170" text-anchor="middle" fill="#d8b4fe" font-size="11" font-weight="bold">MAU PAGADOR</text>
-                        </svg>
-                    </div>
-                </div>
-            `;
-        }
-
-        function renderVisualStep5(canvas, actionSlot) {
-            actionSlot.innerHTML = `
-                <button onclick="switchView('cases')" class="w-full py-2.5 px-4 rounded-xl bg-brandTeal-600 hover:bg-brandTeal-500 text-white font-bold text-xs transition flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-chart-pie"></i>
-                    <span>Ver Comparativo dos 3 Casos Reais</span>
-                </button>
-            `;
-
-            canvas.innerHTML = `
-                <div class="space-y-4 stage-animate">
-                    <!-- Fluxo Do Dado à Decisão -->
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <div class="p-4 rounded-2xl bg-brandTeal-900/25 border-2 border-brandTeal-500/60 text-center space-y-1">
-                            <i class="fa-solid fa-circle-check text-2xl text-brandTeal-400"></i>
-                            <div class="text-base font-black text-white uppercase">Aprovar</div>
-                            <div class="text-xs text-brandTeal-200">Perfil parecido com <strong>bom pagador</strong> (70% da base)</div>
-                        </div>
-
-                        <div class="p-4 rounded-2xl bg-amber-500/15 border-2 border-amber-400/70 text-center space-y-1">
-                            <i class="fa-solid fa-user-shield text-2xl text-amber-300"></i>
-                            <div class="text-base font-black text-white uppercase">Analisar</div>
-                            <div class="text-xs text-amber-200">Caso duvidoso: vai para <strong>análise humana</strong></div>
-                        </div>
-
-                        <div class="p-4 rounded-2xl bg-brandPurple-900/25 border-2 border-brandPurple-500/60 text-center space-y-1">
-                            <i class="fa-solid fa-circle-xmark text-2xl text-brandPurple-400"></i>
-                            <div class="text-base font-black text-white uppercase">Negar</div>
-                            <div class="text-xs text-brandPurple-200">Perfil parecido com <strong>mau pagador</strong> (Evita erro 5x)</div>
-                        </div>
-                    </div>
-
-                    <!-- Barra Visual de Proporção do Caso Ativo -->
-                    <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2.5">
-                        <div class="flex justify-between text-xs font-bold">
-                            <span class="text-brandTeal-300">
-                                70% Bons pagadores (700)
-                            </span>
-                            <span class="text-brandPurple-300">
-                                30% Maus pagadores (300)
-                            </span>
-                        </div>
-                        <div class="w-full h-5 rounded-full overflow-hidden flex bg-slate-900 p-0.5 gap-1">
-                            <div class="h-full bg-brandTeal-600 rounded-l-full transition-all duration-700" style="width: 70%"></div>
-                            <div class="h-full bg-brandPurple-500 rounded-r-full transition-all duration-700" style="width: 30%"></div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-        function selectStep(idx) {
-            activeStep = idx;
-            renderPipelineNodes();
-            renderCurrentStage();
-        }
-
-        function changeStep(delta) {
-            activeStep = (activeStep + delta + 5) % 5;
-            if (activeStep === 0) {
-                stageCleaned = false;
-                stageNormalized = false;
-            }
-            renderPipelineNodes();
-            renderCurrentStage();
-        }
-
-        function toggleAutoPlay() {
-            const icon = document.getElementById('autoplay-icon');
-            const txt = document.getElementById('autoplay-text');
-            if (autoTimer) {
-                clearInterval(autoTimer);
-                autoTimer = null;
-                icon.className = 'fa-solid fa-play';
-                txt.textContent = 'Fluxo automático';
-            } else {
-                icon.className = 'fa-solid fa-pause';
-                txt.textContent = 'Pausar';
-                autoTimer = setInterval(() => {
-                    if (activeStep === 1 && !stageCleaned) {
-                        stageCleaned = true;
-                        renderCurrentStage();
-                        return;
-                    }
-                    if (activeStep === 2 && !stageNormalized) {
-                        stageNormalized = true;
-                        renderCurrentStage();
-                        return;
-                    }
-                    changeStep(1);
-                }, 2800);
-            }
-        }
-
-        function switchView(viewName) {
-            ['kdd', 'sim', 'cases', 'concepts'].forEach(name => {
-                const section = document.getElementById(`view-${name}`);
-                const tab = document.getElementById(`nav-${name}`);
-                const isActive = name === viewName;
-                section.classList.toggle('hidden', !isActive);
-                tab.className = isActive ? activeTabClass : inactiveTabClass;
-            });
-        }
-
-        // simulador do dado à decisão
-        function selectClientPreset(key) {
-            const clients = {
-                ana:   { renda: 6500, atrasos: 0, name: 'Ana' },
-                bruno: { renda: 1800, atrasos: 4, name: 'Bruno' },
-                carla: { renda: 4200, atrasos: 1, name: 'Carla' },
-                diego: { renda: 2100, atrasos: 3, name: 'Diego' },
-                elisa: { renda: 3000, atrasos: 2, name: 'Elisa (?)' }
-            };
-            const client = clients[key];
-            document.getElementById('input-sim-renda').value = client.renda;
-            document.getElementById('input-sim-atrasos').value = client.atrasos;
-            runLiveClassifier(client.name);
-        }
-
-        function runLiveClassifier(labelName) {
-            const renda = parseInt(document.getElementById('input-sim-renda').value, 10);
-            const atrasos = parseInt(document.getElementById('input-sim-atrasos').value, 10);
-
-            document.getElementById('lbl-sim-renda').textContent = `R$ ${renda.toLocaleString('pt-BR')}`;
-            document.getElementById('lbl-sim-atrasos').textContent = `${atrasos} ${atrasos === 1 ? 'atraso' : 'atrasos'}`;
-
-            const boxApprove = document.getElementById('decision-box-approve');
-            const boxAnalyze = document.getElementById('decision-box-analyze');
-            const boxDeny = document.getElementById('decision-box-deny');
-
-            const dimClass = "p-3.5 rounded-xl border border-slate-800 bg-slate-950/50 opacity-45 transition-all text-center";
-            boxApprove.className = dimClass;
-            boxAnalyze.className = dimClass;
-            boxDeny.className = dimClass;
-
-            let color = '#fbbf24';
-            if (renda >= 3800 && atrasos <= 1) {
-                boxApprove.className = "p-3.5 rounded-xl border-2 border-brandTeal-400 bg-brandTeal-600/25 transition-all text-center scale-105 shadow-lg";
-                color = '#14b8a6';
-            } else if (renda <= 2500 || atrasos >= 3) {
-                boxDeny.className = "p-3.5 rounded-xl border-2 border-brandPurple-400 bg-brandPurple-500/25 transition-all text-center scale-105 shadow-lg";
-                color = '#a67db8';
-            } else {
-                boxAnalyze.className = "p-3.5 rounded-xl border-2 border-amber-400 bg-amber-500/20 transition-all text-center scale-105 shadow-lg";
-                color = '#fbbf24';
-            }
-
-            // Posição no SVG (560x220)
-            const posX = Math.round(55 + ((renda - 1000) / 7000) * 450);
-            const posY = Math.round(190 - (atrasos / 5) * 160);
-
-            const circle = document.getElementById('sim-target-circle');
-            const pulse = document.getElementById('sim-pulse-circle');
-            const text = document.getElementById('sim-target-label');
-
-            circle.setAttribute('cx', posX);
-            circle.setAttribute('cy', posY);
-            circle.setAttribute('fill', color);
-
-            pulse.setAttribute('cx', posX);
-            pulse.setAttribute('cy', posY);
-
-            text.setAttribute('x', posX > 430 ? posX - 64 : posX + 14);
-            text.setAttribute('y', posY + 4);
-            text.textContent = `${labelName}`;
-        }
-
-        function toggleFullScreen() {
-            if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen().catch(() => {});
-            } else {
-                document.exitFullscreen().catch(() => {});
-            }
-        }
-
-        window.addEventListener('keydown', (event) => {
-            const kddVisible = !document.getElementById('view-kdd').classList.contains('hidden');
-            if (!kddVisible || event.target.tagName === 'INPUT') return;
-            if (event.key === 'ArrowRight') changeStep(1);
-            if (event.key === 'ArrowLeft') changeStep(-1);
-        });
-
-        window.onload = function () {
-            renderPipelineNodes();
-            renderCurrentStage();
-            selectClientPreset('elisa');
-        };
-    </script>
+<body class="min-h-screen flex flex-col bg-grid selection:bg-brandTeal-500 selection:text-slate-950">
+
+<header class="border-b border-slate-800 bg-slate-950/95 backdrop-blur sticky top-0 z-40 px-4 lg:px-8">
+ <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-x-6">
+  <div class="py-3 flex items-center gap-3">
+   <div class="w-9 h-9 rounded-xl bg-brandTeal-950 border border-brandTeal-500/40 flex items-center justify-center text-brandTeal-300"><i class="fa-solid fa-tags"></i></div>
+   <div>
+    <h1 class="text-base font-bold text-white leading-tight">Classificação <span class="text-slate-500 font-medium">no processo KDD</span></h1>
+    <p class="text-[11px] text-slate-400">Éric Cavalcante França · João Pedro Abrantes de Carvalho · Pedro Leony Ribeiro · Yasmin Garcia Borges</p>
+   </div>
+  </div>
+  <nav class="flex max-w-full overflow-x-auto" aria-label="Seções">
+   <button onclick="switchView('kdd')" id="nav-kdd" class="nav-tab"><i class="fa-solid fa-diagram-project"></i><span>1. Fluxo KDD</span></button>
+   <button onclick="switchView('sim')" id="nav-sim" class="nav-tab"><i class="fa-solid fa-sliders"></i><span>2. Do dado à decisão</span></button>
+   <button onclick="switchView('cases')" id="nav-cases" class="nav-tab"><i class="fa-solid fa-chart-pie"></i><span>3. Casos reais</span></button>
+   <button onclick="switchView('concepts')" id="nav-concepts" class="nav-tab"><i class="fa-solid fa-book-open"></i><span>4. Conceito e visão geral</span></button>
+  </nav>
+  <button onclick="toggleFullScreen()" class="hidden xl:flex items-center gap-2 text-xs text-slate-400 hover:text-white transition"><i class="fa-solid fa-expand"></i><span>Tela cheia</span></button>
+ </div>
+</header>
+
+<main class="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-5">
+
+<!-- 1. FLUXO KDD -->
+<section id="view-kdd" class="space-y-5">
+ <div class="rounded-2xl border border-slate-800 bg-gradient-to-r from-brandTeal-950 via-slate-900 to-brandPurple-900/30 p-4 flex items-center gap-3 enter">
+  <i class="fa-solid fa-quote-left text-brandTeal-400 text-xl float"></i>
+  <p class="text-sm sm:text-base text-slate-200 font-medium min-h-[1.5rem]"><span id="typed"></span><span class="caret">|</span></p>
+ </div>
+ <div class="relative overflow-hidden flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 bg-slate-900/70 border border-slate-800 rounded-2xl p-3.5">
+  <div class="text-sm text-slate-300 flex items-center gap-2 px-2"><i class="fa-solid fa-building-columns text-brandTeal-400"></i><span>Exemplo: classificação de crédito (German Credit)</span><span class="hidden sm:inline text-[11px] text-slate-500 font-mono">use ← → no teclado</span></div>
+  <div class="flex items-center gap-2 justify-end">
+   <button onclick="changeStep(-1)" class="w-9 h-9 rounded-xl bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800 flex items-center justify-center transition" aria-label="Etapa anterior"><i class="fa-solid fa-chevron-left text-xs"></i></button>
+   <button onclick="toggleAutoPlay()" id="autoplay-btn" class="px-4 py-2 rounded-xl bg-gradient-to-r from-brandTeal-600 to-brandTeal-500 hover:from-brandTeal-500 hover:to-brandTeal-400 text-white text-xs font-bold shadow-lg shadow-brandTeal-900/50 flex items-center gap-2 transition"><i class="fa-solid fa-play" id="autoplay-icon"></i><span id="autoplay-text">Fluxo automático</span></button>
+   <button onclick="changeStep(1)" class="w-9 h-9 rounded-xl bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800 flex items-center justify-center transition" aria-label="Próxima etapa"><i class="fa-solid fa-chevron-right text-xs"></i></button>
+  </div>
+  <div id="autoplay-bar" class="absolute left-0 bottom-0 w-full"></div>
+ </div>
+
+ <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 sm:p-5">
+  <div class="grid grid-cols-1 md:grid-cols-5 gap-3" id="kdd-nodes"></div>
+ </div>
+
+ <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+  <div class="lg:col-span-4 bg-slate-900/75 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between">
+   <div class="space-y-4">
+    <div class="flex items-center justify-between gap-2">
+     <span id="stage-badge" class="px-2.5 py-1 rounded-md text-[11px] font-mono font-bold uppercase bg-brandTeal-500/15 text-brandTeal-300 border border-brandTeal-500/30"></span>
+     <span id="stage-metric" class="text-xs font-mono text-brandPurple-300 font-semibold text-right"></span>
+    </div>
+    <div>
+     <h2 id="stage-title" class="text-2xl font-black text-white tracking-tight"></h2>
+     <p id="stage-sub" class="text-sm text-slate-300 mt-1 font-medium"></p>
+    </div>
+    <div class="space-y-2.5 pt-2" id="stage-io"></div>
+   </div>
+   <div id="stage-action" class="pt-5 mt-4 border-t border-slate-800/80"></div>
+  </div>
+  <div class="lg:col-span-8 bg-slate-900/75 border border-slate-800 rounded-2xl p-5 relative overflow-hidden min-h-[430px] flex flex-col justify-center">
+   <div id="kdd-stage"></div>
+  </div>
+ </div>
+</section>
+
+<!-- 2. SIMULADOR -->
+<section id="view-sim" class="hidden space-y-5">
+ <div class="bg-slate-900/75 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+  <div>
+   <h2 class="text-xl font-black text-white">Do dado à decisão</h2>
+   <p class="text-xs text-slate-400 mt-0.5">O modelo aprendeu com Ana, Bruno, Carla e Diego. Como classificar a Elisa, que chegou sem rótulo?</p>
+  </div>
+  <div class="flex flex-wrap items-center gap-2" id="presets"></div>
+ </div>
+
+ <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+  <div class="lg:col-span-5 space-y-4">
+   <div class="bg-slate-900/75 border border-slate-800 rounded-2xl p-4">
+    <div class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Base de treino (gabarito)</div>
+    <table class="w-full text-left border-collapse text-xs">
+     <thead><tr class="border-b border-slate-800 text-slate-400"><th class="py-2 px-2.5">Cliente</th><th class="py-2 px-2.5">Renda</th><th class="py-2 px-2.5">Atrasos</th><th class="py-2 px-2.5">Classe</th></tr></thead>
+     <tbody id="train-body" class="divide-y divide-slate-800/60 font-mono"></tbody>
+    </table>
+   </div>
+   <div class="bg-slate-900/75 border border-slate-800 rounded-2xl p-4 space-y-4">
+    <div class="text-xs font-bold uppercase tracking-wider text-slate-400">Ajustar atributos manualmente</div>
+    <div>
+     <div class="flex justify-between text-xs mb-1"><label for="input-renda" class="text-slate-300 font-semibold">Renda mensal</label><span id="lbl-renda" class="font-mono font-bold text-brandTeal-400"></span></div>
+     <input type="range" id="input-renda" min="1000" max="8000" step="100" value="3000" oninput="runClassifier('Personalizado')" class="w-full accent-teal-400 cursor-pointer">
+    </div>
+    <div>
+     <div class="flex justify-between text-xs mb-1"><label for="input-atrasos" class="text-slate-300 font-semibold">Histórico de atrasos</label><span id="lbl-atrasos" class="font-mono font-bold text-brandPurple-400"></span></div>
+     <input type="range" id="input-atrasos" min="0" max="5" step="1" value="2" oninput="runClassifier('Personalizado')" class="w-full accent-purple-400 cursor-pointer">
+    </div>
+    <div class="text-[11px] text-slate-400 leading-relaxed p-3 rounded-xl bg-slate-950 border border-slate-800"><strong class="text-slate-200">Regra aprendida (ilustrativa):</strong> Negar se renda ≤ R$ 2.500 ou atrasos ≥ 3. Aprovar se renda ≥ R$ 3.800 e atrasos ≤ 1. Nos demais casos, Analisar.</div>
+   </div>
+  </div>
+
+  <div class="lg:col-span-7 bg-slate-900/75 border border-slate-800 rounded-2xl p-5 space-y-4">
+   <div class="flex flex-col items-center gap-1 text-xs">
+    <div class="px-4 py-2 rounded-lg border border-slate-700 bg-slate-950 font-bold text-white"><span id="flow-client">Elisa</span> pede crédito</div>
+    <i class="fa-solid fa-arrow-down text-brandTeal-400 float"></i>
+    <div class="px-4 py-2 rounded-lg border border-brandTeal-500/40 bg-brandTeal-950/50 font-bold text-brandTeal-300">Modelo cruza renda e atrasos</div>
+    <i class="fa-solid fa-arrow-down text-brandTeal-400 float"></i>
+   </div>
+   <div class="grid grid-cols-3 gap-3">
+    <div id="box-approve" class="decision p-3.5 rounded-xl border text-center"><i class="fa-solid fa-circle-check text-xl text-brandTeal-400 mb-1"></i><div class="text-sm font-black text-white uppercase">Aprovar</div><div class="text-[11px] text-slate-400">Perfil parecido com bom pagador</div></div>
+    <div id="box-analyze" class="decision p-3.5 rounded-xl border text-center"><i class="fa-solid fa-magnifying-glass text-xl text-amber-300 mb-1"></i><div class="text-sm font-black text-white uppercase">Analisar</div><div class="text-[11px] text-slate-400">Caso duvidoso: vai pra análise humana</div></div>
+    <div id="box-deny" class="decision p-3.5 rounded-xl border text-center"><i class="fa-solid fa-ban text-xl text-brandPurple-400 mb-1"></i><div class="text-sm font-black text-white uppercase">Negar</div><div class="text-[11px] text-slate-400">Perfil parecido com mau pagador</div></div>
+   </div>
+   <div class="bg-slate-950 border border-slate-800 rounded-xl p-3">
+    <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-400 mb-2 px-1">
+     <span class="font-bold text-slate-300">Mapa de separação de classes (Renda × Atrasos)</span>
+     <div class="flex items-center gap-3">
+      <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-brandTeal-500"></span>Bom</span>
+      <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>Análise</span>
+      <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-brandPurple-500"></span>Mau</span>
+     </div>
+    </div>
+    <svg viewBox="0 0 560 220" class="w-full h-56 rounded-lg bg-slate-900/90" role="img" aria-label="Mapa de renda por atrasos com regiões de decisão">
+     <rect width="560" height="220" fill="rgba(245,158,11,.14)"/>
+     <rect width="151" height="220" fill="rgba(166,125,184,.18)"/>
+     <rect x="151" width="409" height="94" fill="rgba(166,125,184,.18)"/>
+     <rect x="235" y="158" width="325" height="62" fill="rgba(27,122,104,.22)"/>
+     <path d="M151,220V0M151,94H560M235,158V220M235,158H560" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="5 5" fill="none"/>
+     <text x="465" y="212" fill="#94a3b8" font-size="11" font-weight="bold">Renda mensal →</text>
+     <text x="12" y="18" fill="#94a3b8" font-size="11" font-weight="bold">↑ Atrasos</text>
+     <g font-size="11" font-weight="bold">
+      <circle cx="408" cy="190" r="7" fill="#14b8a6" stroke="#0f172a" stroke-width="2"/><text x="420" y="194" fill="#5eead4">Ana</text>
+      <circle cx="261" cy="158" r="7" fill="#14b8a6" stroke="#0f172a" stroke-width="2"/><text x="273" y="162" fill="#5eead4">Carla</text>
+      <circle cx="126" cy="94" r="7" fill="#a67db8" stroke="#0f172a" stroke-width="2"/><text x="138" y="98" fill="#d8b4fe">Diego</text>
+      <circle cx="106" cy="62" r="7" fill="#a67db8" stroke="#0f172a" stroke-width="2"/><text x="118" y="66" fill="#d8b4fe">Bruno</text>
+     </g>
+     <circle id="sim-pulse-circle" cx="210" cy="116" r="16" fill="rgba(251,191,36,.25)"><animate attributeName="r" values="12;22;12" dur="2s" repeatCount="indefinite"/></circle>
+     <circle id="sim-target-circle" cx="210" cy="116" r="9" fill="#fbbf24" stroke="#fff" stroke-width="2.5"/>
+     <text id="sim-target-label" x="224" y="120" fill="#fff" font-size="12" font-weight="900">Elisa (?)</text>
+    </svg>
+   </div>
+   <p class="text-[11px] text-slate-500">Exemplo ilustrativo (dados inventados, só pra explicar)</p>
+  </div>
+ </div>
+</section>
+
+<!-- 3. CASOS -->
+<section id="view-cases" class="hidden space-y-5">
+ <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 stagger" id="cases-grid"></div>
+ <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 stagger" id="cases-charts"></div>
+</section>
+
+<!-- 4. CONCEITO -->
+<section id="view-concepts" class="hidden space-y-5">
+ <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 stagger">
+  <div class="lg:col-span-7 bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-4 lift">
+   <h3 class="text-lg font-black text-white">O que é classificação?</h3>
+   <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="what-grid"></div>
+   <div class="p-3.5 rounded-xl bg-slate-950 border border-brandTeal-500/30 text-xs text-slate-300"><i class="fa-solid fa-lightbulb text-amber-300 mr-1.5"></i><strong class="text-white">Analogia:</strong> é como estudar com provas antigas que têm gabarito. Na prova nova, sem gabarito, você responde sozinho com o que aprendeu.</div>
+  </div>
+  <div class="lg:col-span-5 bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3 lift">
+   <h3 class="text-lg font-black text-white">O que entra e o que sai</h3>
+   <div class="flex flex-col items-stretch gap-1.5 text-center text-xs">
+    <div class="p-3 rounded-xl bg-brandTeal-900 border border-brandTeal-500/40"><div class="font-black text-white text-sm">Entrada</div><div class="text-brandTeal-200">Dados e atributos do registro: números, categorias, textos</div></div>
+    <i class="fa-solid fa-arrow-down text-brandTeal-400 float self-center"></i>
+    <div class="p-3 rounded-xl bg-brandTeal-600 border border-brandTeal-400/50"><div class="font-black text-white text-sm">Modelo</div><div class="text-brandTeal-100">Aprendizagem com dados rotulados</div></div>
+    <i class="fa-solid fa-arrow-down text-brandTeal-400 float self-center"></i>
+    <div class="p-3 rounded-xl bg-brandPurple-500 border border-brandPurple-300/50"><div class="font-black text-slate-950 text-sm">Saída</div><div class="text-slate-900">Listagem com classes correspondentes (binário ou multiclasse)</div></div>
+   </div>
+   <div class="grid grid-cols-2 gap-3 text-[11px] text-slate-400 pt-1">
+    <div class="p-3 rounded-xl bg-slate-950 border border-slate-800"><div class="text-xs font-black text-white mb-1">Treino</div>Para o treino, um histórico de dados rotulados (classificados) é necessário</div>
+    <div class="p-3 rounded-xl bg-slate-950 border border-slate-800"><div class="text-xs font-black text-white mb-1">Avaliação</div>O modelo é testado com dados e atributos padronizados, mas com valores diferentes do que recebeu</div>
+   </div>
+  </div>
+ </div>
+
+ <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3 lift">
+  <h3 class="text-lg font-black text-white">Como a máquina aprende</h3>
+  <div id="learn" class="flex flex-col md:flex-row md:items-stretch gap-3"></div>
+ </div>
+
+ <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 stagger">
+  <div class="lg:col-span-7 bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3 lift">
+   <h3 class="text-lg font-black text-white">5 perguntas de negócio</h3>
+   <div class="space-y-2 text-xs" id="questions"></div>
+  </div>
+  <div class="lg:col-span-5 bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3 lift">
+   <h3 class="text-lg font-black text-white">Não confunda as tarefas</h3>
+   <div class="overflow-x-auto"><table class="w-full text-left border-collapse text-xs">
+    <thead><tr class="border-b border-slate-800 text-slate-400"><th class="py-2 px-2"></th><th class="py-2 px-2 text-brandTeal-300 font-extrabold bg-brandTeal-900/20">Classificação</th><th class="py-2 px-2">Agrupamento</th><th class="py-2 px-2">Regressão</th></tr></thead>
+    <tbody class="divide-y divide-slate-800/70" id="diff-body"></tbody>
+   </table></div>
+  </div>
+ </div>
+
+ <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3 lift">
+  <h3 class="text-lg font-black text-white">Vantagens e desafios</h3>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="pros-cons"></div>
+ </div>
+
+ <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+  <div class="lg:col-span-7 bg-slate-900/80 border border-slate-800 rounded-2xl p-5">
+   <h3 class="text-sm font-black text-white uppercase tracking-wider mb-3"><i class="fa-solid fa-book text-brandTeal-400 mr-2"></i>Fontes</h3>
+   <ul class="space-y-1.5 text-[11px] text-slate-400 list-disc pl-4" id="sources"></ul>
+  </div>
+  <div class="lg:col-span-5 bg-slate-900/80 border border-slate-800 rounded-2xl p-5">
+   <h3 class="text-sm font-black text-white uppercase tracking-wider mb-3"><i class="fa-solid fa-users text-brandTeal-400 mr-2"></i>Grupo 2 · Classificação</h3>
+   <div class="grid grid-cols-1 gap-3 stagger" id="team"></div>
+  </div>
+ </div>
+</section>
+</main>
+
+<footer class="border-t border-slate-900/90 bg-slate-950/90 py-3 px-4 lg:px-8 text-[11px] text-slate-500">
+ <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
+  <span><strong>Fontes:</strong> Fayyad et al. (1996) · UCI Machine Learning Repository (German Credit, Breast Cancer Wisconsin, Spambase) · Esteva et al., Nature (2017)</span>
+  <span>Engenharia Inteligente de Dados · ULBRA · Profª Fernanda Pereira Gomes</span>
+ </div>
+</footer>
+
+<script>
+const $=id=>document.getElementById(id);
+const TAB_ON='nav-tab px-4 py-3 text-sm border-b-2 border-teal-400 text-white flex items-center gap-2 whitespace-nowrap';
+const TAB_OFF='nav-tab px-4 py-3 text-sm border-b-2 border-transparent text-slate-400 hover:text-white flex items-center gap-2 whitespace-nowrap transition';
+const VIEWS=['kdd','sim','cases','concepts'];
+let step=0,timer=null,cleaned=false,normalized=false,currentView='kdd';
+
+const good=t=>`<span class="px-2 py-0.5 rounded bg-brandTeal-600/30 text-brandTeal-300 font-sans font-bold">${t}</span>`;
+const bad=t=>`<span class="px-2 py-0.5 rounded bg-brandPurple-500/30 text-brandPurple-300 font-sans font-bold">${t}</span>`;
+const fmt=n=>'R$ '+n.toLocaleString('pt-BR');
+
+// Clientes: [nome, renda, atrasos, bom?, telefone]
+const C=[['Ana',6500,0,1,'9912-0011'],['Bruno',1800,4,0,'9881-2231'],['Carla',4200,1,1,'9923-4410'],['Diego',2100,3,0,'9811-9090']];
+
+const STEPS=[
+ {n:'Seleção',sub:'1.000 clientes e 20 atributos (valor, prazo, histórico...)',m:'1.000 registros · 20 atributos',i:'Repositório Statlog (German Credit)',a:'Seleção dos atributos financeiros relevantes',o:'Base alvo (700 bons | 300 maus)',ic:'fa-database'},
+ {n:'Pré-processamento',sub:'Checa dados faltando, erros e confere os rótulos',m:'Higienização e gabarito',i:'Registros com ruídos ou nulos',a:'Correção de falhas e validação da classe',o:'Base íntegra e rotulada',ic:'fa-wand-magic-sparkles'},
+ {n:'Transformação',sub:'Categorias viram números, escalas padronizadas',m:'Codificação e escala [0, 1]',i:'Textos e escalas diferentes (R$ vs qtd)',a:'Conversão numérica e normalização',o:'Vetores matemáticos padronizados',ic:'fa-sliders'},
+ {n:'Mineração',sub:'Classificador aprende com parte dos clientes (treino)',m:'Treino supervisionado',i:'Exemplos com gabarito (Ana, Bruno, Carla, Diego)',a:'O algoritmo extrai regras de separação',o:'Modelo classificador treinado',ic:'fa-microchip'},
+ {n:'Interpretação',sub:'Testa no resto da base e apoia a decisão de crédito',m:'70% bons · 30% maus · custo 5x',i:'Base de teste + matriz de custo (5x)',a:'Validação de acurácia e risco',o:'Decisão: aprovar, analisar ou negar',ic:'fa-chart-pie'}
+];
+
+/* ---------- Navegação ---------- */
+function switchView(v){
+ if(v!=='kdd')stopAuto();
+ currentView=v;
+ VIEWS.forEach(n=>{const s=$('view-'+n);s.classList.toggle('hidden',n!==v);$('nav-'+n).className=n===v?TAB_ON:TAB_OFF;$('nav-'+n).setAttribute('aria-current',n===v?'page':'false')});
+ if(v==='cases')renderCases();
+ if(v==='sim')runClassifier(simLabel);
+ if(v==='concepts'){const s=$('view-concepts');s.classList.remove('enter');void s.offsetWidth;s.classList.add('enter')}
+ if(v==='kdd')renderStage();
+ window.scrollTo({top:0,behavior:'smooth'});
+}
+
+/* ---------- Fluxo KDD ---------- */
+function renderNodes(){
+ $('kdd-nodes').innerHTML=STEPS.map((s,i)=>{
+  const cur=i===step,past=i<step;
+  const box=cur?'bg-gradient-to-br from-brandTeal-900/70 to-slate-900 border-brandTeal-400 text-white pulse-node':past?'bg-slate-900/90 border-brandTeal-600/50 text-slate-200':'bg-slate-950/70 border-slate-800 text-slate-400 hover:border-slate-700';
+  const num=cur?'bg-brandTeal-400 text-slate-950 font-black':past?'bg-brandTeal-600/30 text-brandTeal-300 border border-brandTeal-500/40':'bg-slate-900 text-slate-500 border border-slate-800';
+  return `<div role="button" tabindex="0" onkeydown="if(event.key==='Enter')selectStep(${i})" onclick="selectStep(${i})" class="cursor-pointer rounded-xl p-3 border transition-all relative flex items-center gap-3 ${box}">
+   <div class="w-8 h-8 rounded-lg text-xs flex items-center justify-center font-mono flex-shrink-0 ${num}">${past?'<i class="fa-solid fa-check"></i>':'0'+(i+1)}</div>
+   <div class="min-w-0 flex-1"><div class="text-xs font-extrabold uppercase tracking-wide truncate ${cur?'text-brandTeal-300':''}">${s.n}</div><div class="text-[11px] text-slate-400 truncate">${s.sub}</div></div>
+   <i class="fa-solid ${s.ic} text-xs ${cur?'text-brandTeal-300':'text-slate-600'}"></i>
+   ${i<4?`<div class="hidden md:block absolute -right-3.5 top-1/2 -translate-y-1/2 w-4 h-0.5 z-20 ${i<=step?'bg-brandTeal-500/60':'bg-slate-800'}">${cur?'<span class="particle"></span>':''}</div>`:''}
+  </div>`}).join('');
+}
+
+function ioRow(icon,label,id,txt,tone){
+ const t={slate:['border-slate-800/80','bg-slate-900 border-slate-700 text-slate-400','text-slate-500','text-slate-200'],teal:['border-brandTeal-500/30','bg-brandTeal-500/20 border-brandTeal-500/40 text-brandTeal-300','text-brandTeal-400','text-white'],purple:['border-brandPurple-500/30','bg-brandPurple-500/20 border-brandPurple-500/40 text-brandPurple-300','text-brandPurple-300','text-brandPurple-200']}[tone];
+ return `<div class="p-3 rounded-xl bg-slate-950/90 border ${t[0]} flex items-center gap-3"><div class="w-8 h-8 rounded-lg border flex items-center justify-center flex-shrink-0 ${t[1]}"><i class="fa-solid ${icon} text-xs"></i></div><div><div class="text-[10px] font-mono uppercase ${t[2]}">${label}</div><div class="text-xs font-bold ${t[3]}">${txt}</div></div></div>`;
+}
+
+const btn=(fn,cls,icon,txt)=>`<button onclick="${fn}" class="w-full py-2.5 px-4 rounded-xl font-bold text-xs transition flex items-center justify-center gap-2 ${cls}"><i class="fa-solid ${icon}"></i><span>${txt}</span></button>`;
+const table=(head,rows)=>`<div class="rounded-xl border border-slate-800 bg-slate-950 overflow-x-auto"><table class="w-full text-left border-collapse text-xs font-mono"><thead><tr class="bg-slate-900 text-slate-400 border-b border-slate-800 font-sans">${head.map(h=>`<th class="py-2.5 px-3">${h}</th>`).join('')}</tr></thead><tbody class="divide-y divide-slate-800/60">${rows.map(r=>`<tr>${r.map(c=>`<td class="py-2.5 px-3">${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+
+function renderStage(){
+ const s=STEPS[step];
+ $('stage-badge').textContent=`ETAPA 0${step+1} / 05`;
+ $('stage-metric').textContent=s.m;$('stage-title').textContent=s.n;$('stage-sub').textContent=s.sub;
+ $('stage-io').innerHTML=ioRow('fa-arrow-right-to-bracket','Entrada','',s.i,'slate')+ioRow('fa-gears','Ação no KDD','',s.a,'teal')+ioRow('fa-check-double','Resultado','',s.o,'purple');
+ [stage1,stage2,stage3,stage4,stage5][step]($('kdd-stage'),$('stage-action'));
+}
+
+function stage1(c,a){
+ a.innerHTML=btn('changeStep(1)','bg-brandTeal-600 hover:bg-brandTeal-500 text-white','fa-arrow-right','Enviar seleção para o pré-processamento');
+ const attrs=[['Renda mensal',1],['Histórico / atrasos',1],['Valor e prazo',1],['Poupança e emprego',1],['Telefone',0],['Nome completo',0],['Código interno',0],['Outros atributos',0]];
+ c.innerHTML=`<div class="space-y-4 enter">
+  <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400 px-1"><span class="font-bold text-white uppercase tracking-wider"><i class="fa-solid fa-filter text-brandTeal-400 mr-1.5"></i>Seleção de atributos: Statlog German Credit (UCI)</span><span class="font-mono text-brandTeal-300">1.000 clientes × 20 atributos</span></div>
+  <div class="grid grid-cols-3 gap-2.5 text-center">${[[1000,'','clientes','text-brandTeal-300'],[20,'','atributos','text-brandPurple-300'],[70,'%','bons pagadores','text-amber-300']].map(([v,sf,l,c])=>`<div class="lift p-3 rounded-xl bg-slate-950 border border-slate-800"><div class="text-2xl font-black ${c}" data-count="${v}" data-suf="${sf}">0</div><div class="text-[11px] text-slate-400">${l}</div></div>`).join('')}</div>
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 stagger">${attrs.map(([n,s])=>s?`<div class="p-3 rounded-xl bg-brandTeal-900/25 border border-brandTeal-500/50 flex items-center gap-2.5"><i class="fa-solid fa-circle-check text-brandTeal-400"></i><div><div class="text-xs font-bold text-white">${n}</div><div class="text-[10px] text-brandTeal-300 font-mono">Selecionado</div></div></div>`:`<div class="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center gap-2.5 opacity-60"><i class="fa-solid fa-circle-xmark text-slate-600"></i><div><div class="text-xs font-bold text-slate-400 line-through">${n}</div><div class="text-[10px] text-slate-500 font-mono">Descartado</div></div></div>`).join('')}</div>
+  ${table(['Cliente','Renda','Atrasos','Classe (gabarito)'],C.map(r=>[`<span class="font-sans font-bold text-white">${r[0]}</span>`,`<span class="text-brandTeal-300">${fmt(r[1])}</span>`,`<span class="${r[3]?'text-brandTeal-300':'text-brandPurple-300'}">${r[2]}</span>`,r[3]?good('Bom pagador'):bad('Mau pagador')]))}
+  <p class="text-[11px] text-slate-500">Exemplo ilustrativo (dados inventados, só pra explicar)</p></div>`;
+ countUp(c);
+}
+
+function stage2(c,a){
+ a.innerHTML=btn('toggleClean()',cleaned?'bg-slate-800 text-brandTeal-300 border border-brandTeal-500/40':'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-lg',cleaned?'fa-rotate-left':'fa-broom',cleaned?'Ver antes da limpeza':'Limpar dados faltando e erros');
+ const k=cleaned,t=(ok,bd)=>k?`<span class="text-brandTeal-300 font-bold">${ok}</span>`:`<span class="text-rose-400 font-bold">${bd}</span>`;
+ c.innerHTML=`<div class="space-y-4 enter relative">${k?'':'<div class="scanner"></div>'}
+  <div class="flex items-center justify-between px-3.5 py-2.5 rounded-xl border text-xs font-bold ${k?'bg-brandTeal-950/30 border-brandTeal-500/40 text-brandTeal-300':'bg-amber-950/30 border-amber-500/40 text-amber-300'}"><span><i class="fa-solid ${k?'fa-circle-check':'fa-triangle-exclamation'} mr-2"></i>${k?'Dados faltando corrigidos e rótulos conferidos!':'Inconsistências detectadas: valor faltando, erro e rótulo pendente'}</span><span class="font-mono">${k?'100% íntegro':'3 alertas'}</span></div>
+  ${table(['Registro (ilustrativo)','Renda','Idade / prazo','Rótulo','Status'],[
+   ['#REG-104',t('R$ 3.500 (preenchido)','NULL (faltando)'),'24 meses',good('Bom pagador'),k?'<span class="font-sans text-brandTeal-400 font-bold">Corrigido</span>':'<span class="font-sans text-amber-400 font-bold">Dado faltando</span>'],
+   ['#REG-289','R$ 2.100',t('29 anos','-12 anos (erro)'),bad('Mau pagador'),k?'<span class="font-sans text-brandTeal-400 font-bold">Corrigido</span>':'<span class="font-sans text-rose-400 font-bold">Erro de valor</span>'],
+   ['#REG-512','R$ 6.500','18 meses',k?good('Bom pagador'):'<span class="text-amber-300 font-bold">"bom_pgto???"</span>',k?'<span class="font-sans text-brandTeal-400 font-bold">Conferido</span>':'<span class="font-sans text-amber-400 font-bold">Conferir rótulo</span>']])}</div>`;
+}
+function toggleClean(){cleaned=!cleaned;renderStage()}
+
+function stage3(c,a){
+ const n=normalized;
+ a.innerHTML=btn('toggleNorm()',n?'bg-slate-800 text-brandTeal-300 border border-brandTeal-500/40':'bg-brandTeal-500 hover:bg-brandTeal-400 text-slate-950 shadow-lg','fa-repeat',n?'Ver dados originais':'Transformar em números e padronizar escalas');
+ const rn=r=>((r-1800)/4700).toFixed(2),an=x=>(x/4).toFixed(2);
+ c.innerHTML=`<div class="space-y-4 enter">
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+   <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between"><span class="text-slate-400">Categorias → números:</span><span class="font-mono font-bold text-brandTeal-300">Bom = 1 | Mau = 0</span></div>
+   <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between"><span class="text-slate-400">Escalas padronizadas:</span><span class="font-mono font-bold text-brandPurple-300">Faixa [0,00 a 1,00]</span></div>
+  </div>
+  ${table(['Cliente',n?'Renda [0-1]':'Renda original',n?'Atrasos [0-1]':'Atrasos originais',n?'Classe numérica':'Classe categórica'],C.map(r=>{const g=r[3];return [`<span class="font-sans font-bold text-white">${r[0]}</span>`,`<span class="${g?'text-brandTeal-300':'text-brandPurple-300'}">${n?rn(r[1]):fmt(r[1])}</span>`,`<span class="${g?'text-brandTeal-300':'text-brandPurple-300'}">${n?an(r[2]):r[2]+(r[2]===1?' atraso':' atrasos')}</span>`,g?good(n?'1':'Bom pagador'):bad(n?'0':'Mau pagador')]})) }
+  <div class="space-y-1.5 p-3 rounded-xl bg-slate-950 border border-slate-800"><div class="text-[11px] text-slate-400 mb-1">Renda de cada cliente (${n?'escala [0-1]':'em R$, escalas diferentes'})</div>${C.map(r=>{const w=n?(r[1]-1800)/4700*100:r[1]/6500*100;return `<div class="flex items-center gap-2 text-[11px]"><span class="w-12 text-slate-400">${r[0]}</span><div class="flex-1 h-2.5 rounded-full bg-slate-900 overflow-hidden"><div class="h-full rounded-full ${r[3]?'bg-brandTeal-500':'bg-brandPurple-500'}" data-w="${w}" style="width:0;transition:width .9s cubic-bezier(.16,1,.3,1)"></div></div><span class="w-16 text-right font-mono text-slate-300">${n?rn(r[1]):fmt(r[1])}</span></div>`}).join('')}</div>
+  <p class="text-[11px] text-slate-500">Normalização min-max: (valor − mínimo) ÷ (máximo − mínimo). Renda: 1.800 a 6.500. Atrasos: 0 a 4.</p></div>`;
+ animateBars(c);
+}
+function toggleNorm(){normalized=!normalized;renderStage()}
+
+function stage4(c,a){
+ a.innerHTML=btn("switchView('sim')",'bg-gradient-to-r from-brandPurple-600 to-brandTeal-600 hover:from-brandPurple-500 hover:to-brandTeal-500 text-white shadow-lg','fa-sliders','Testar a Elisa no simulador ao vivo');
+ const dot=(p,col,d)=>`<circle r="4" fill="${col}"><animateMotion dur="2s" begin="${d}s" repeatCount="indefinite" path="${p}"/></circle>`;
+ c.innerHTML=`<div class="space-y-4 enter">
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+   <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800"><div class="text-xs font-mono font-black text-brandTeal-400">01. Exemplos</div><div class="text-[11px] text-slate-400">Dados com gabarito</div></div>
+   <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800"><div class="text-xs font-mono font-black text-brandTeal-400">02. Treino</div><div class="text-[11px] text-slate-400">Acha padrões</div></div>
+   <div class="p-2.5 rounded-xl bg-slate-950 border border-amber-500/40"><div class="text-xs font-mono font-black text-amber-300">03. Novo dado</div><div class="text-[11px] text-slate-300">Chega sem rótulo (?)</div></div>
+   <div class="p-2.5 rounded-xl bg-slate-950 border border-brandPurple-500/40"><div class="text-xs font-mono font-black text-brandPurple-300">04. Palpite</div><div class="text-[11px] text-slate-300">Devolve a classe</div></div>
+  </div>
+  <div class="bg-slate-950 border border-slate-800 rounded-xl p-3">
+   <svg viewBox="0 0 640 210" class="w-full h-52" role="img" aria-label="Exemplos rotulados alimentam o modelo, que devolve bom pagador, analisar ou mau pagador">
+    <path d="M150,55 L310,105" stroke="#14b8a6" stroke-width="2.5" class="flow" fill="none"/><path d="M150,155 L310,105" stroke="#a67db8" stroke-width="2.5" class="flow" fill="none"/>
+    <path d="M350,105 L495,45" stroke="#14b8a6" stroke-width="2.5" class="flow" fill="none"/><path d="M350,105 L495,105" stroke="#fbbf24" stroke-width="2.5" class="flow" fill="none"/><path d="M350,105 L495,165" stroke="#a67db8" stroke-width="2.5" class="flow" fill="none"/>
+    ${dot('M150,55 L310,105','#5eead4',0)}${dot('M150,155 L310,105','#d8b4fe',.5)}${dot('M350,105 L495,105','#fde68a',1)}
+    <rect x="15" y="25" width="135" height="55" rx="10" fill="#0f172a" stroke="#14b8a6" stroke-width="2"/><text x="82" y="48" text-anchor="middle" fill="#5eead4" font-size="11" font-weight="bold">Ana e Carla</text><text x="82" y="65" text-anchor="middle" fill="#94a3b8" font-size="10">Rótulo: Bom (1)</text>
+    <rect x="15" y="125" width="135" height="55" rx="10" fill="#0f172a" stroke="#a67db8" stroke-width="2"/><text x="82" y="148" text-anchor="middle" fill="#d8b4fe" font-size="11" font-weight="bold">Bruno e Diego</text><text x="82" y="165" text-anchor="middle" fill="#94a3b8" font-size="10">Rótulo: Mau (0)</text>
+    <circle cx="330" cy="105" r="42" fill="#0f172a" stroke="#2dd4bf" stroke-width="3"><animate attributeName="stroke-width" values="3;6;3" dur="2s" repeatCount="indefinite"/></circle>
+    <text x="330" y="101" text-anchor="middle" fill="#fff" font-size="11" font-weight="900">MODELO</text><text x="330" y="116" text-anchor="middle" fill="#5eead4" font-size="9">Cruza dados</text>
+    <rect x="495" y="22" width="130" height="44" rx="8" fill="rgba(20,184,166,.2)" stroke="#14b8a6" stroke-width="2"/><text x="560" y="48" text-anchor="middle" fill="#5eead4" font-size="11" font-weight="bold">BOM PAGADOR</text>
+    <rect x="495" y="83" width="130" height="44" rx="8" fill="rgba(251,191,36,.2)" stroke="#fbbf24" stroke-width="2"/><text x="560" y="104" text-anchor="middle" fill="#fde68a" font-size="11" font-weight="bold">ELISA (R$ 3 mil | 2)</text><text x="560" y="118" text-anchor="middle" fill="#fff" font-size="9">→ Analisar</text>
+    <rect x="495" y="144" width="130" height="44" rx="8" fill="rgba(166,125,184,.2)" stroke="#a67db8" stroke-width="2"/><text x="560" y="170" text-anchor="middle" fill="#d8b4fe" font-size="11" font-weight="bold">MAU PAGADOR</text>
+   </svg></div></div>`;
+}
+
+function stage5(c,a){
+ a.innerHTML=btn("switchView('cases')",'bg-brandTeal-600 hover:bg-brandTeal-500 text-white','fa-chart-pie','Ver comparativo dos 3 casos reais');
+ const card=(cls,ic,t,txt)=>`<div class="lift p-4 rounded-2xl border-2 text-center space-y-1 ${cls}"><i class="fa-solid ${ic} text-2xl"></i><div class="text-base font-black text-white uppercase">${t}</div><div class="text-xs">${txt}</div></div>`;
+ c.innerHTML=`<div class="space-y-4">
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 stagger">
+   ${card('bg-brandTeal-900/25 border-brandTeal-500/60 text-brandTeal-200','fa-circle-check text-brandTeal-400','Aprovar','Perfil parecido com <strong>bom pagador</strong> (70% da base)')}
+   ${card('bg-amber-500/15 border-amber-400/70 text-amber-200','fa-user-shield text-amber-300','Analisar','Caso duvidoso: vai para <strong>análise humana</strong>')}
+   ${card('bg-brandPurple-900/25 border-brandPurple-500/60 text-brandPurple-200','fa-circle-xmark text-brandPurple-400','Negar','Perfil parecido com <strong>mau pagador</strong> (evita o erro 5x)')}
+  </div>
+  <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2.5">
+   <div class="flex justify-between text-xs font-bold"><span class="text-brandTeal-300">70% bons pagadores (700)</span><span class="text-brandPurple-300">30% maus pagadores (300)</span></div>
+   <div class="w-full h-5 rounded-full overflow-hidden flex bg-slate-900 p-0.5 gap-1"><div id="s5a" class="vbar h-full bg-brandTeal-600 rounded-l-full" style="width:0;transition:width 1s"></div><div id="s5b" class="h-full bg-brandPurple-500 rounded-r-full" style="width:0;transition:width 1s"></div></div>
+  </div></div>`;
+ requestAnimationFrame(()=>requestAnimationFrame(()=>{$('s5a').style.width='70%';$('s5b').style.width='30%'}));
+}
+
+function selectStep(i){step=i;renderNodes();renderStage()}
+function changeStep(d){step=(step+d+5)%5;if(step===0){cleaned=false;normalized=false}renderNodes();renderStage()}
+
+function stopAuto(){
+ if(timer){clearInterval(timer);timer=null}
+ $('autoplay-icon').className='fa-solid fa-play';$('autoplay-text').textContent='Fluxo automático';$('autoplay-bar').innerHTML='';
+}
+function toggleAutoPlay(){
+ if(timer){stopAuto();return}
+ $('autoplay-icon').className='fa-solid fa-pause';$('autoplay-text').textContent='Pausar';
+ const tick=()=>{
+  $('autoplay-bar').innerHTML='<div class="progress"></div>';
+  if(step===1&&!cleaned){cleaned=true;renderStage();return}
+  if(step===2&&!normalized){normalized=true;renderStage();return}
+  changeStep(1);
+ };
+ $('autoplay-bar').innerHTML='<div class="progress"></div>';
+ timer=setInterval(tick,3000);
+}
+
+/* ---------- Simulador ---------- */
+const PRESETS={ana:[6500,0,'Ana'],bruno:[1800,4,'Bruno'],carla:[4200,1,'Carla'],diego:[2100,3,'Diego'],elisa:[3000,2,'Elisa (?)']};
+const PCOL={ana:'teal',bruno:'purple',carla:'teal',diego:'purple',elisa:'amber'};
+let simLabel='Elisa (?)',simKey='elisa';
+
+function buildSim(){
+ $('presets').innerHTML='<span class="text-xs text-slate-400 mr-1">Testar cliente:</span>'+Object.entries(PRESETS).map(([k,[r,a,n]])=>{
+  const c=PCOL[k],cls=c==='teal'?'bg-brandTeal-600/20 border-brandTeal-500/50 text-brandTeal-300':c==='purple'?'bg-brandPurple-500/20 border-brandPurple-500/50 text-brandPurple-300':'bg-amber-500/20 border-amber-400 text-amber-300';
+  return `<button id="preset-${k}" onclick="selectPreset('${k}')" class="px-3 py-1.5 rounded-xl text-xs font-bold border transition hover:scale-105 ${cls}">${k==='elisa'?'<i class="fa-solid fa-circle-question mr-1"></i>':''}${n.replace(' (?)','')} (${fmt(r)} | ${a} atr${k==='elisa'?' → ?':''})</button>`}).join('');
+ $('train-body').innerHTML=C.map(r=>`<tr onclick="selectPreset('${r[0].toLowerCase()}')" class="hover:bg-slate-800/50 cursor-pointer transition"><td class="py-2 px-2.5 font-sans font-bold text-white">${r[0]}</td><td class="py-2 px-2.5 text-slate-300">${fmt(r[1])}</td><td class="py-2 px-2.5 ${r[3]?'text-brandTeal-300':'text-brandPurple-300'}">${r[2]}</td><td class="py-2 px-2.5">${r[3]?good('Bom pagador'):bad('Mau pagador')}</td></tr>`).join('')
+  +`<tr onclick="selectPreset('elisa')" class="bg-amber-500/10 hover:bg-amber-500/20 cursor-pointer transition"><td class="py-2 px-2.5 font-sans font-extrabold text-amber-300">Elisa</td><td class="py-2 px-2.5 text-amber-200">R$ 3.000</td><td class="py-2 px-2.5 text-amber-200">2</td><td class="py-2 px-2.5"><span id="elisa-tag" class="px-2 py-0.5 rounded bg-amber-500/30 text-amber-300 font-sans font-extrabold">?</span></td></tr>`;
+}
+function selectPreset(k){
+ const [r,a,n]=PRESETS[k];simKey=k;
+ $('input-renda').value=r;$('input-atrasos').value=a;
+ Object.keys(PRESETS).forEach(x=>$('preset-'+x).classList.toggle('ring-2',x===k));
+ Object.keys(PRESETS).forEach(x=>$('preset-'+x).classList.toggle('ring-white/70',x===k));
+ runClassifier(n);
+}
+function decide(r,a){return r<=2500||a>=3?'deny':(r>=3800&&a<=1?'approve':'analyze')}
+function runClassifier(label){
+ simLabel=label;if(label==='Personalizado'){simKey='';Object.keys(PRESETS).forEach(x=>$('preset-'+x).classList.remove('ring-2'))}
+ const r=+$('input-renda').value,a=+$('input-atrasos').value;
+ $('lbl-renda').textContent=fmt(r);$('lbl-atrasos').textContent=`${a} ${a===1?'atraso':'atrasos'}`;
+ const d=decide(r,a);
+ const fc=$('flow-client');if(fc)fc.textContent=label==='Personalizado'?'Cliente novo':label.replace(' (?)','');
+ const dim='decision p-3.5 rounded-xl border border-slate-800 bg-slate-950/50 opacity-40 text-center';
+ const on={approve:'decision p-3.5 rounded-xl border-2 border-brandTeal-400 bg-brandTeal-600/25 text-center scale-105 shadow-lg',analyze:'decision p-3.5 rounded-xl border-2 border-amber-400 bg-amber-500/20 text-center scale-105 shadow-lg',deny:'decision p-3.5 rounded-xl border-2 border-brandPurple-400 bg-brandPurple-500/25 text-center scale-105 shadow-lg'};
+ ['approve','analyze','deny'].forEach(k=>$('box-'+k).className=k===d?on[k]:dim);
+ const col={approve:'#14b8a6',analyze:'#fbbf24',deny:'#a67db8'}[d];
+ const x=Math.round(55+((r-1000)/7000)*450),y=Math.round(190-(a/5)*160);
+ const c=$('sim-target-circle'),p=$('sim-pulse-circle'),t=$('sim-target-label');
+ c.setAttribute('cx',x);c.setAttribute('cy',y);c.setAttribute('fill',col);
+ p.setAttribute('cx',x);p.setAttribute('cy',y);p.setAttribute('fill',col+'40');
+ t.setAttribute('x',x>430?x-70:x+14);t.setAttribute('y',y+4);t.textContent=label;
+ const tag=$('elisa-tag');
+ if(tag){const isE=simKey==='elisa';tag.textContent=isE?{approve:'Bom pagador',analyze:'Analisar',deny:'Mau pagador'}[d]:'?'}
+}
+
+/* ---------- Casos reais ---------- */
+const CASES=[
+ {tag:'CASO 01 | UCI STATLOG',title:'Caso 1 · Finanças',ic:'fa-building-columns',tone:'teal',val:70,cn:1000,cl:'Clientes',a:['70% Bons','700 clientes que pagaram em dia','teal'],b:['30% Maus','300 clientes com problema no pagamento','purple'],c:['5× Erro caro','Liberar crédito pra mau pagador custa 5× mais','amber'],d:['20 Atributos','Valor, prazo, histórico, poupança, emprego, idade...','white'],vars:'<strong class="text-slate-300">Como decide:</strong> renda baixa, prazo longo, poupança escassa e atrasos anteriores elevam a chance de mau pagador. Como aprovar um mau pagador custa 5× mais, o modelo é ajustado para errar menos nesse sentido.',src:'Fonte: UCI Machine Learning Repository, Statlog (German Credit Data): 1.000 clientes de um banco alemão'},
+ {tag:'CASO 02 | WISCONSIN E STANFORD',title:'Caso 2 · Saúde',ic:'fa-microscope',tone:'purple',val:63,cn:569,cl:'Pacientes',a:['63% Benigno','357 pacientes','teal'],b:['37% Maligno','212 pacientes','purple'],c:['129.450','Imagens de pele pra treinar uma rede neural (Stanford, 2017)','white'],d:['21','Dermatologistas usados de comparação','amber'],vars:'<strong class="text-slate-300">Como decide:</strong> medidas das células (raio, textura, perímetro, área, suavidade). Células maiores e mais irregulares apontam para o maligno.',src:'Fonte: Breast Cancer Wisconsin (UCI), 569 pacientes. Imagens de pele: Esteva et al., Nature, 2017.'},
+ {tag:'CASO 03 | HP LABS SPAMBASE',title:'Caso 3 · Tecnologia',ic:'fa-envelope-circle-check',tone:'teal',bars:[2788,1813],a:['61% Não spam','2.788 e-mails legítimos','teal'],b:['39% Spam','1.813 dos 4.601 e-mails da base','purple'],wide:['> 99,9% de bloqueio no Gmail','Segundo o Google: spam, phishing e malware'],vars:'<strong class="text-slate-300">Como decide:</strong> frequência de palavras suspeitas, símbolos como $ e !, e sequências de letras maiúsculas.',src:'Fonte: UCI Spambase (HP Labs). O Google diz que o Gmail bloqueia mais de 99,9% de spam, phishing e malware.'}
+];
+const TONE={teal:['text-brandTeal-400','border-brandTeal-500/30'],purple:['text-brandPurple-400','border-brandPurple-500/30'],amber:['text-amber-400','border-slate-800'],white:['text-white','border-slate-800']};
+function renderCharts(){
+ const bar=(l,w,c,t)=>`<div class="space-y-1"><div class="flex justify-between text-[11px]"><span class="text-slate-300">${l}</span><span class="font-mono text-slate-400">${t}</span></div><div class="h-3 rounded-full bg-slate-900 overflow-hidden"><div class="h-full rounded-full ${c}" data-w="${w}" style="width:0;transition:width 1s cubic-bezier(.16,1,.3,1)"></div></div></div>`;
+ const st=(l,a,b)=>`<div class="space-y-1"><div class="text-[11px] text-slate-300">${l}</div><div class="flex h-6 rounded-lg overflow-hidden gap-0.5"><div class="bg-brandTeal-600 flex items-center justify-center text-[11px] font-bold" data-w="${a}" style="width:0;transition:width 1s cubic-bezier(.16,1,.3,1)">${a}%</div><div class="bg-brandPurple-500 flex items-center justify-center text-[11px] font-bold text-slate-950" data-w="${b}" style="width:0;transition:width 1s cubic-bezier(.16,1,.3,1)">${b}%</div></div></div>`;
+ const card=(t,sb,body)=>`<div class="lift bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3"><div><h4 class="text-sm font-black text-white">${t}</h4><p class="text-[11px] text-slate-400">${sb}</p></div>${body}</div>`;
+ $('cases-charts').innerHTML=
+  card('Balanceamento das classes','Classe majoritária e minoritária em cada caso',st('Finanças (bons × maus)',70,30)+st('Saúde (benigno × maligno)',63,37)+st('Spam (não spam × spam)',61,39))
+ +card('Tamanho das bases','Quantidade de registros analisados',bar('Finanças: clientes',1000/4601*100,'bg-brandTeal-500','1.000')+bar('Saúde: pacientes',569/4601*100,'bg-brandPurple-500','569')+bar('Spam: e-mails',100,'bg-amber-400','4.601'))
+ +card('Custo do erro no crédito','Matriz de custo do German Credit (o 5×)',bar('Aprovar um mau pagador',100,'bg-brandPurple-500','5×')+bar('Negar um bom pagador',20,'bg-brandTeal-500','1×')+'<p class="text-[11px] text-slate-500">Por isso o modelo é ajustado para evitar o erro mais caro.</p>');
+ animateBars($('cases-charts'));
+}
+function renderCases(){
+ const g=$('cases-grid');renderCharts();
+ g.innerHTML=CASES.map((k,i)=>{
+  const stat=([t,s,c])=>`<div class="lift p-3 rounded-xl bg-slate-950 border ${TONE[c][1]}"><div class="text-lg font-black ${TONE[c][0]}">${t}</div><div class="text-[11px] text-slate-400">${s}</div></div>`;
+  const viz=k.bars?`<div class="flex items-end justify-center gap-8 h-44 pt-6 px-4 bg-slate-950/60 rounded-xl border border-slate-800/80">${[['Não spam',k.bars[0],'bg-brandTeal-600','text-brandTeal-300'],['Spam',k.bars[1],'bg-brandPurple-500','text-brandPurple-300']].map(([n,v,bg,tc])=>`<div class="flex flex-col items-center gap-1.5 w-20"><span class="text-xs font-mono font-bold ${tc}">${v.toLocaleString('pt-BR')}</span><div class="vbar w-full ${bg} rounded-t-lg" data-h="${Math.round(v/2788*100)}" style="height:0"></div><span class="text-[11px] font-bold text-slate-300">${n}</span></div>`).join('')}</div>`
+   :`<div class="flex items-center justify-center py-2"><div class="relative w-40 h-40 float"><svg viewBox="0 0 36 36" class="w-full h-full -rotate-90"><circle cx="18" cy="18" r="15.915" fill="transparent" stroke="#a67db8" stroke-width="4.5"/><circle class="donut" data-v="${k.val}" cx="18" cy="18" r="15.915" fill="transparent" stroke="#1b7a68" stroke-width="4.5" stroke-dasharray="0 100"/></svg><div class="absolute inset-0 flex flex-col items-center justify-center"><span class="text-2xl font-black text-white" data-count="${k.cn}">0</span><span class="text-[11px] text-slate-400 font-mono">${k.cl}</span></div></div></div>`;
+  const rest=k.wide?`<div class="col-span-2 lift p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between"><div><div class="text-base font-black text-amber-400">${k.wide[0]}</div><div class="text-[11px] text-slate-400">${k.wide[1]}</div></div><i class="fa-solid fa-shield-halved text-2xl text-brandTeal-400"></i></div>`:stat(k.c)+stat(k.d);
+  return `<div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-5">
+   <div class="flex items-center justify-between"><div><span class="text-[11px] font-mono uppercase ${TONE[k.tone][0]}">${k.tag}</span><h3 class="text-xl font-black text-white">${k.title}</h3></div><div class="w-10 h-10 rounded-xl bg-slate-950 border border-slate-700 flex items-center justify-center ${TONE[k.tone][0]}"><i class="fa-solid ${k.ic}"></i></div></div>
+   ${viz}<div class="grid grid-cols-2 gap-2.5">${stat(k.a)}${stat(k.b)}${rest}</div><div class="text-[11px] text-slate-400 leading-relaxed">${k.vars}</div><div class="text-[10px] text-slate-500 border-t border-slate-800 pt-2">${k.src}</div></div>`}).join('');
+ requestAnimationFrame(()=>requestAnimationFrame(()=>{
+  g.querySelectorAll('.donut').forEach(e=>e.setAttribute('stroke-dasharray',`${e.dataset.v} ${100-e.dataset.v}`));
+  g.querySelectorAll('[data-h]').forEach(e=>e.style.height=Math.round(e.dataset.h*.92)+'px');
+  countUp(g);
+ }));
+}
+function animateBars(r){requestAnimationFrame(()=>requestAnimationFrame(()=>r.querySelectorAll('[data-w]').forEach(e=>e.style.width=e.dataset.w+'%')))}
+function typeQuote(){const t='Como seu filtro de spam sabe exatamente o que descartar? Não é aleatório, são dados.';const el=$('typed');let i=0;(function f(){el.textContent=t.slice(0,i++);if(i<=t.length)setTimeout(f,32)})()}
+function countUp(root){
+ root.querySelectorAll('[data-count]').forEach(el=>{
+  const end=+el.dataset.count;let t0=null;
+  const f=t=>{t0=t0??t;const p=Math.min((t-t0)/1000,1);el.textContent=Math.round(end*(1-Math.pow(1-p,3))).toLocaleString('pt-BR')+(el.dataset.suf||'');if(p<1)requestAnimationFrame(f)};
+  requestAnimationFrame(f);
+ });
+}
+
+/* ---------- Conceito ---------- */
+function buildConcepts(){
+ const tn={teal:'text-brandTeal-300 bg-brandTeal-500/15 border-brandTeal-500/30',purple:'text-brandPurple-300 bg-brandPurple-500/15 border-brandPurple-500/30'};
+ $('what-grid').innerHTML=[['fa-gears','Prever uma categoria','Define a qual classe um registro pertence com base em dados','teal'],['fa-folder-open','Aprende com gabarito','Aprendizado supervisionado: exemplos já rotulados','purple'],['fa-table-list','Entrada: atributos','Renda, idade, histórico... as características do registro','teal'],['fa-bullseye','Saída: uma classe','Ex.: bom ou mau pagador, spam ou não spam','purple']].map(([ic,t,d,c])=>`<div class="lift p-3.5 rounded-xl bg-slate-950 border border-slate-800 flex gap-3"><div class="w-9 h-9 rounded-lg border flex items-center justify-center flex-shrink-0 ${tn[c]}"><i class="fa-solid ${ic}"></i></div><div><div class="text-sm font-bold text-white">${t}</div><div class="text-[11px] text-slate-400 mt-0.5">${d}</div></div></div>`).join('');
+ const L=[['01','Exemplos','Reúne dados históricos já com a resposta (rótulo)','fa-cloud-arrow-up'],['02','Treino','O algoritmo acha padrões que ligam atributos à classe','fa-dumbbell'],['03','Novo dado','Chega um registro sem rótulo, tipo um cliente novo','fa-user-plus'],['04','Palpite','O modelo devolve a classe prevista pro registro','fa-wand-magic-sparkles']];
+ $('learn').innerHTML=L.map(([n,t,d,ic],i)=>`<div class="lift flex-1 text-center p-3.5 rounded-xl bg-slate-950 border border-slate-800"><i class="fa-solid ${ic} text-brandTeal-300 text-xl mb-1"></i><div class="text-2xl font-black text-white font-mono">${n}</div><div class="text-sm font-bold text-brandTeal-300">${t}</div><div class="text-[11px] text-slate-400 mt-1">${d}</div></div>`+(i<3?'<div class="hidden md:block w-8 relative h-0.5 bg-slate-700 self-center flex-shrink-0"><span class="particle"></span></div>':'')).join('');
+ $('questions').innerHTML=[['“Esse cliente vai pagar o empréstimo ou dar calote?”','Classificação de crédito'],['“Esse e-mail é spam ou mensagem legítima?”','Filtro de spam'],['“Esse tumor é benigno ou maligno?”','Apoio ao diagnóstico'],['“Esse cliente vai cancelar o serviço?”','Retenção de clientes'],['“Essa compra no cartão é do cliente?”','Detecção de fraude']].map(([q,t],i)=>`<div class="lift p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center gap-3"><span class="text-2xl font-black text-brandTeal-400 w-6 text-center">${i+1}</span><span class="flex-1 text-slate-200">${q}</span><span class="px-2 py-0.5 rounded font-bold whitespace-nowrap bg-brandPurple-500/20 text-brandPurple-300">${t}</span></div>`).join('');
+ $('diff-body').innerHTML=[['Aprendizado','Supervisionado','Não supervisionado','Supervisionado'],['Resposta','Uma categoria','Grupos descobertos','Um número contínuo'],['Exemplo','Bom ou mau pagador','Perfis de clientes','Preço de um imóvel']].map(r=>`<tr><td class="py-2.5 px-2 text-slate-400 font-semibold">${r[0]}</td><td class="py-2.5 px-2 text-brandTeal-300 font-bold bg-brandTeal-900/10">${r[1]}</td><td class="py-2.5 px-2 text-slate-300">${r[2]}</td><td class="py-2.5 px-2 text-slate-300">${r[3]}</td></tr>`).join('');
+ const item=(t,d,ic,c)=>`<div class="lift p-3 rounded-xl bg-slate-950 border ${c==='teal'?'border-brandTeal-500/30':'border-brandPurple-500/30'}"><div class="text-xs font-bold text-white"><i class="fa-solid ${ic} mr-1.5 ${c==='teal'?'text-brandTeal-400':'text-brandPurple-400'}"></i>${t}</div><div class="text-[11px] text-slate-400 mt-1">${d}</div></div>`;
+ $('pros-cons').innerHTML=`<div class="space-y-2.5"><div class="font-extrabold text-brandTeal-400 uppercase text-xs"><i class="fa-solid fa-circle-plus mr-1"></i>Vantagens</div>${item('Redução de Riscos e Custos','Antecipa problemas críticos (como inadimplência ou fraudes) onde o erro operacional custa caro.','fa-shield-halved','teal')}${item('Decisão Automatizada em Escala','Processa milhares de registros (clientes, exames ou e-mails) em milissegundos com alta precisão.','fa-gauge-high','teal')}</div><div class="space-y-2.5"><div class="font-extrabold text-brandPurple-400 uppercase text-xs"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Desafios</div>${item('Dependência de Dados Rotulados','Exige um grande histórico pré-classificado ("gabarito") para treinar o modelo de inteligência.','fa-database','purple')}${item('Desbalanceamento e Caixa-Preta','Sofre com classes desproporcionais (ex: 70% vs 30%) e com a dificuldade de explicar a decisão final.','fa-scale-balanced','purple')}</div>`;
+ $('sources').innerHTML=['Fayyad, Piatetsky-Shapiro, Smyth (1996). From Data Mining to Knowledge Discovery in Databases. AI Magazine.','UCI Machine Learning Repository: Statlog (German Credit Data), Breast Cancer Wisconsin (Diagnostic) e Spambase.','Esteva et al. (2017). Dermatologist-level classification of skin cancer with deep neural networks. Nature, 542.','Google: informações públicas sobre a proteção do Gmail contra spam, phishing e malware.','Aula 10: Tarefas de Data Mining (Profª Fernanda Pereira Gomes).'].map(t=>`<li>${t}</li>`).join('');
+ $('team').innerHTML=[['Éric Cavalcante França','eric.cf@rede.ulbra.br'],['João Pedro Abrantes de Carvalho','joaopedroabrantes@rede.ulbra.br'],['Pedro Leony Ribeiro','pedro.ribeiro@rede.ulbra.br'],['Yasmin Garcia Borges','yasmin.borges@rede.ulbra.br']].map(([n,e])=>`<div class="lift p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center gap-3"><div class="w-9 h-9 rounded-full bg-brandTeal-900 border border-brandTeal-500/40 flex items-center justify-center text-xs font-black text-brandTeal-300 flex-shrink-0">${n.split(' ').filter(w=>/^[A-ZÉ]/.test(w)).slice(0,2).map(w=>w[0]).join('')}</div><div class="min-w-0"><div class="text-xs font-bold text-white leading-tight">${n}</div><a href="mailto:${e}" class="text-[11px] text-slate-400 hover:text-brandTeal-300 break-all transition">${e}</a></div></div>`).join('');
+}
+
+function toggleFullScreen(){document.fullscreenElement?document.exitFullscreen().catch(()=>{}):document.documentElement.requestFullscreen().catch(()=>{})}
+window.addEventListener('keydown',e=>{
+ if(currentView!=='kdd'||['INPUT','BUTTON'].includes(e.target.tagName)&&e.key!=='ArrowRight'&&e.key!=='ArrowLeft')return;
+ if(e.target.tagName==='INPUT')return;
+ if(e.key==='ArrowRight')changeStep(1);
+ if(e.key==='ArrowLeft')changeStep(-1);
+});
+
+window.onload=()=>{
+ buildSim();buildConcepts();typeQuote();renderNodes();renderStage();
+ selectPreset('elisa');
+ VIEWS.forEach(n=>$('nav-'+n).className=n==='kdd'?TAB_ON:TAB_OFF);
+};
+</script>
 </body>
 </html>
